@@ -1,0 +1,5 @@
+python-sat>=0.1.8
+anthropic>=0.40.0   # only needed for --backend sdk
+pdfplumber>=0.11    # PDF input. MIT, like pdfminer.six under it.
+                    # NEVER PyMuPDF/fitz: AGPL, and it would poison a
+                    # commercial product.

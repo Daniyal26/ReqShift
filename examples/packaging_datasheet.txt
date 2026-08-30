@@ -1,0 +1,49 @@
+TDS-9310  Horizontal Flow Wrapper HFW-400, Technical Data Sheet
+Revision 2
+
+1. Description
+
+The HFW-400 is a horizontal flow wrapping machine for food and non food products. It is
+supplied as part of a packaging line together with infeed conveyors, a checkweigher and a
+case packer.
+
+2. Performance data
+
+Output rate up to 120 packs per minute for standard products.
+
+Film speed up to 2.5 m/s. Reduced to 1.8 m/s for perforated film.
+
+Product weight up to 60 kg per pack.
+
+Product length between 80 mm and 420 mm.
+
+Sealing temperature adjustable from 80 to 220 degrees Celsius, controlled to within
+2 degrees.
+
+Changeover time under 15 minutes for a trained operator.
+
+3. Dimensions and utilities
+
+Machine footprint max. 4200 mm long, max. 1350 mm wide, max. 1800 mm high.
+
+Infeed height adjustable between 850 mm and 1050 mm.
+
+Connected load 8.5 kW. Compressed air 6 bar, up to 180 litres per minute.
+
+Noise emission below 75 dB(A) at one metre.
+
+4. Line integration
+
+The wrapper accepts product from upstream infeed conveyors and discharges to downstream
+case packing equipment. Line composition is agreed with the customer during project
+planning.
+
+Additional infeed conveyors may be fitted depending on product handling requirements.
+
+The machine communicates with the line control system over Ethernet.
+
+5. Availability
+
+Mean time between failures above 900 operating hours.
+
+Machine availability at least 98 percent under normal production conditions.

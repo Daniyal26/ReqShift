@@ -1,0 +1,165 @@
+{
+ "actors": [
+  {
+   "type": "D",
+   "lo": 1,
+   "hi": 1,
+   "label": "Dispatch Center"
+  },
+  {
+   "type": "H",
+   "lo": 0,
+   "hi": 3,
+   "label": "Hospital"
+  },
+  {
+   "type": "M",
+   "lo": 0,
+   "hi": 5,
+   "label": "Ambulance"
+  }
+ ],
+ "roots": {
+  "D": "D",
+  "H": "H",
+  "M": "M"
+ },
+ "goals": [
+  {
+   "name": "D",
+   "owner": "D",
+   "kind": "goal",
+   "root": true,
+   "label": "Coordinate emergency response"
+  },
+  {
+   "name": "D1",
+   "owner": "D",
+   "kind": "goal",
+   "root": false,
+   "label": "Locate incident"
+  },
+  {
+   "name": "D2",
+   "owner": "D",
+   "kind": "goal",
+   "root": false,
+   "label": "Dispatch ambulance"
+  },
+  {
+   "name": "D3",
+   "owner": "D",
+   "kind": "goal",
+   "root": false,
+   "label": "Confirm receiving hospital"
+  },
+  {
+   "name": "H",
+   "owner": "H",
+   "kind": "goal",
+   "root": true,
+   "label": "Provide emergency care"
+  },
+  {
+   "name": "H1",
+   "owner": "H",
+   "kind": "goal",
+   "root": false,
+   "label": "Admit incoming patient"
+  },
+  {
+   "name": "H2",
+   "owner": "H",
+   "kind": "goal",
+   "root": false,
+   "label": "Report bed availability"
+  },
+  {
+   "name": "M",
+   "owner": "M",
+   "kind": "goal",
+   "root": true,
+   "label": "Carry out emergency mission"
+  },
+  {
+   "name": "M1",
+   "owner": "M",
+   "kind": "goal",
+   "root": false,
+   "label": "Reach incident scene"
+  },
+  {
+   "name": "M1a",
+   "owner": "M",
+   "kind": "goal",
+   "root": false,
+   "label": "Take ground route"
+  },
+  {
+   "name": "M1b",
+   "owner": "M",
+   "kind": "goal",
+   "root": false,
+   "label": "Take air route"
+  },
+  {
+   "name": "M2",
+   "owner": "M",
+   "kind": "goal",
+   "root": false,
+   "label": "Transport patient to hospital"
+  }
+ ],
+ "decomp": [
+  {
+   "parent": "D",
+   "op": "AND",
+   "children": [
+    "D1",
+    "D2",
+    "D3"
+   ]
+  },
+  {
+   "parent": "H",
+   "op": "OR",
+   "children": [
+    "H1",
+    "H2"
+   ]
+  },
+  {
+   "parent": "M",
+   "op": "AND",
+   "children": [
+    "M1",
+    "M2"
+   ]
+  },
+  {
+   "parent": "M1",
+   "op": "XOR",
+   "children": [
+    "M1a",
+    "M1b"
+   ]
+  }
+ ],
+ "deps": [
+  {
+   "from": "M2",
+   "to": "H1",
+   "mult": "1..*"
+  },
+  {
+   "from": "D2",
+   "to": "M2",
+   "mult": "1..*"
+  },
+  {
+   "from": "D3",
+   "to": "M2",
+   "mult": "*..*"
+  }
+ ]
+}

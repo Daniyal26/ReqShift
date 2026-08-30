@@ -1,0 +1,6 @@
+# The tools in this project write files with newline="\n" on purpose, so keep LF
+# in the repository and out of the diffs. Without this, Windows checkouts rewrite
+# every file to CRLF and the next commit looks like the whole project changed.
+* text=auto eol=lf
+*.png binary
+*.pdf binary

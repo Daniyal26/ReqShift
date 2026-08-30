@@ -1,0 +1,62 @@
+{
+ "actors": [
+  { "type": "Platform",        "lo": 1, "hi": 1, "label": "Delivery Platform (backend + admin)" },
+  { "type": "PaymentProvider", "lo": 1, "hi": 1, "label": "Payment Provider (Stripe)" },
+  { "type": "Restaurant",      "lo": 0, "hi": 3, "label": "Restaurant Partner" },
+  { "type": "Rider",           "lo": 0, "hi": 5, "label": "Delivery Rider" },
+  { "type": "Customer",        "lo": 0, "hi": 3, "label": "Customer" }
+ ],
+ "roots": {
+  "Platform": "DeliverOrderEndToEnd",
+  "PaymentProvider": "AuthorizeCharge",
+  "Restaurant": "FulfillOrder",
+  "Rider": "CompleteDelivery",
+  "Customer": "GetFoodDelivered"
+ },
+ "goals": [
+  { "name": "DeliverOrderEndToEnd", "owner": "Platform", "kind": "goal", "root": true,  "label": "Take an order from placement to delivery" },
+  { "name": "RouteOrderToKitchen",  "owner": "Platform", "kind": "task", "root": false, "label": "Route the order to a restaurant" },
+  { "name": "SettlePayment",        "owner": "Platform", "kind": "goal", "root": false, "label": "Settle payment for the order" },
+  { "name": "TrackDelivery",        "owner": "Platform", "kind": "goal", "root": false, "label": "Track the delivery in real time" },
+
+  { "name": "AuthorizeCharge",      "owner": "PaymentProvider", "kind": "goal", "root": true,  "label": "Authorize and capture the charge" },
+  { "name": "RunFraudChecks",       "owner": "PaymentProvider", "kind": "task", "root": false, "label": "Run fraud / 3DS checks" },
+  { "name": "CaptureFunds",         "owner": "PaymentProvider", "kind": "task", "root": false, "label": "Capture funds" },
+
+  { "name": "FulfillOrder",         "owner": "Restaurant", "kind": "goal", "root": true,  "label": "Fulfill an accepted order" },
+  { "name": "AcceptOrder",          "owner": "Restaurant", "kind": "task", "root": false, "label": "Accept the order and set prep time" },
+  { "name": "PrepareFood",          "owner": "Restaurant", "kind": "task", "root": false, "label": "Prepare the food and mark it ready" },
+  { "name": "HandOverToRider",      "owner": "Restaurant", "kind": "goal", "root": false, "label": "Hand the order over for pickup" },
+
+  { "name": "CompleteDelivery",     "owner": "Rider", "kind": "goal", "root": true,  "label": "Complete a delivery" },
+  { "name": "PickUpOrder",          "owner": "Rider", "kind": "goal", "root": false, "label": "Pick the order up at the restaurant" },
+  { "name": "DropOffOrder",         "owner": "Rider", "kind": "goal", "root": false, "label": "Drop the order at the customer" },
+  { "name": "ConfirmByOTP",         "owner": "Rider", "kind": "task", "root": false, "label": "Confirm with a delivery code" },
+  { "name": "ConfirmByPhoto",       "owner": "Rider", "kind": "task", "root": false, "label": "Confirm with photo proof" },
+
+  { "name": "GetFoodDelivered",     "owner": "Customer", "kind": "goal", "root": true,  "label": "Get food delivered" },
+  { "name": "PlaceOrder",           "owner": "Customer", "kind": "goal", "root": false, "label": "Discover a restaurant and place an order" },
+  { "name": "PayForOrder",          "owner": "Customer", "kind": "goal", "root": false, "label": "Pay for the order" },
+  { "name": "PayOnline",            "owner": "Customer", "kind": "task", "root": false, "label": "Pay by card / wallet" },
+  { "name": "PayCash",              "owner": "Customer", "kind": "task", "root": false, "label": "Pay cash on delivery" },
+  { "name": "ReceiveFood",          "owner": "Customer", "kind": "goal", "root": false, "label": "Receive the food" }
+ ],
+ "decomp": [
+  { "parent": "DeliverOrderEndToEnd", "op": "AND", "children": ["RouteOrderToKitchen", "SettlePayment", "TrackDelivery"] },
+  { "parent": "AuthorizeCharge",      "op": "AND", "children": ["RunFraudChecks", "CaptureFunds"] },
+  { "parent": "FulfillOrder",         "op": "AND", "children": ["AcceptOrder", "PrepareFood", "HandOverToRider"] },
+  { "parent": "CompleteDelivery",     "op": "AND", "children": ["PickUpOrder", "DropOffOrder"] },
+  { "parent": "DropOffOrder",         "op": "XOR", "children": ["ConfirmByOTP", "ConfirmByPhoto"] },
+  { "parent": "GetFoodDelivered",     "op": "AND", "children": ["PlaceOrder", "PayForOrder", "ReceiveFood"] },
+  { "parent": "PayForOrder",          "op": "XOR", "children": ["PayOnline", "PayCash"] }
+ ],
+ "deps": [
+  { "from": "RouteOrderToKitchen", "to": "FulfillOrder",      "mult": "1..*" },
+  { "from": "TrackDelivery",       "to": "CompleteDelivery",  "mult": "1..*" },
+  { "from": "SettlePayment",       "to": "AuthorizeCharge",   "mult": "1..*" },
+  { "from": "PickUpOrder",         "to": "FulfillOrder",      "mult": "1..*" },
+  { "from": "PlaceOrder",          "to": "FulfillOrder",      "mult": "1..*" },
+  { "from": "ReceiveFood",         "to": "CompleteDelivery",  "mult": "1..*" },
+  { "from": "PayOnline",           "to": "AuthorizeCharge",   "mult": "1..*" }
+ ]
+}

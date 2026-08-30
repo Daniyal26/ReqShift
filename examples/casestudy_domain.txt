@@ -1,0 +1,5 @@
+Emergency Coordination, Domain Description
+
+An emergency dispatch center coordinates the response to incidents in a region. When a call arrives, the dispatch center locates the incident and sends an ambulance to the scene. An ambulance reaches the scene by a ground route or by an air route and then transports the patient to a hospital. An ambulance can complete a transport only when a hospital is available to receive the patient. A hospital admits the patients that ambulances bring in and reports its bed availability to the dispatch center.
+
+The number of participating actors changes over time. There is always exactly one dispatch center. The number of hospitals that are currently accepting emergency patients ranges from none, when every hospital is on diversion, up to three. The number of ambulances on duty ranges from none, when all are busy elsewhere, up to five.

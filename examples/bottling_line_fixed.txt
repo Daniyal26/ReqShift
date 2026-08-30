@@ -1,0 +1,42 @@
+SRS-7720  Bottling Line, Control Requirements
+Revision B
+
+Revision B closes the composition gaps left open in Revision A. Every machine kind now
+carries a stated minimum and maximum.
+
+2.1 Scope
+
+This document specifies the control behaviour of bottling line BL-2. The line is
+supervised by a single line controller, which remains powered whenever the plant is
+energised.
+
+2.2 Line composition
+
+The line shall be fitted with at least one and at most three filling heads. Filling heads
+are removed for cleaning between product changes, and the line is expected to continue
+operating with a reduced complement, but never with fewer than one.
+
+Capping is performed by capping units. The line shall be fitted with at least one and at
+most two capping units.
+
+Finished crates are removed by pallet shuttles. At least one and at most two pallet
+shuttles shall be assigned to the line at any time.
+
+2.3 Line controller
+
+The line controller shall complete a production run. A run is complete when every bottle
+in the run has been filled, capped and palletised.
+
+The controller shall only consider a bottle filled once at least one filling head reports
+that bottle as filled.
+
+The controller shall only consider a bottle capped once at least one capping unit reports
+that bottle as capped.
+
+The controller shall only consider a crate removed once at least one pallet shuttle
+reports the crate as collected.
+
+2.4 Filling heads
+
+Each filling head shall fill bottles to the configured volume and report each completed
+bottle to the controller.

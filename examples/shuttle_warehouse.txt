@@ -1,0 +1,56 @@
+SRS-4410  Shuttle Warehouse Control System, Requirements
+Revision C
+
+1.1 Scope
+
+This document specifies the control system for automated shuttle warehouse SW-7. The
+warehouse is supervised by a single warehouse control system, which runs whenever the
+site is in operation.
+
+1.2 Warehouse composition
+
+Storage and retrieval within the racking is carried out by rack shuttles. Between one and
+four rack shuttles may be assigned to the aisle at any time. Shuttles are taken out of
+service for battery exchange and maintenance, and the warehouse is expected to keep
+operating on the remaining complement.
+
+Loads are moved between levels by lifts. The aisle is served by at most two lifts.
+
+Shuttles recharge at charging stations installed at the aisle head. Several charging
+stations may be fitted depending on the duty cycle required.
+
+Goods leave the system through pick stations. The number of pick stations varies from
+site to site.
+
+1.3 Warehouse control system
+
+The warehouse control system shall complete a retrieval order. An order is complete when
+every load in the order has been taken from its rack location, carried to the correct
+level and presented to an operator.
+
+The control system shall treat a load as retrieved only once at least one rack shuttle
+reports that load as taken from its location.
+
+The control system shall treat a load as transferred only once at least one lift reports
+that load as delivered to the target level.
+
+The control system shall treat an order as presented only once at least one pick station
+reports the load as available to the operator.
+
+1.4 Rack shuttles
+
+Each rack shuttle shall travel to a rack location, take or place a load, and report the
+movement to the control system.
+
+A rack shuttle shall report its state of charge. A shuttle shall only resume work after a
+charging cycle once at least one charging station reports the shuttle as released.
+
+1.5 Lifts
+
+Each lift shall carry a load to the requested level and report the transfer to the
+control system.
+
+1.6 Pick stations
+
+Each pick station shall present a load to an operator and confirm the pick to the control
+system.

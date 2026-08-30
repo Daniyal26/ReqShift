@@ -1,0 +1,41 @@
+SRS-2140  Invoice Manager, Functional Requirements
+Revision D
+
+3.1 Purpose
+
+This document specifies the functional requirements for the Invoice Manager, a web
+application used by the finance department to raise, approve and archive customer
+invoices.
+
+3.2 User classes
+
+Clerks create and edit invoices. Approvers release invoices for sending. Administrators
+manage user accounts and system settings. Auditors have read only access to all records.
+
+Multiple users may be logged in at the same time.
+
+3.3 Functional requirements
+
+3.3.1 The system shall allow a clerk to create, edit and delete a draft invoice.
+
+3.3.2 The system shall assign every invoice a unique reference number on creation.
+
+3.3.3 The system shall require approval by an approver before an invoice can be sent.
+
+3.3.4 The system shall export any invoice as a PDF document.
+
+3.3.5 The system shall support an unlimited number of line items per invoice.
+
+3.3.6 The system shall retain all invoices for seven years from the date of issue.
+
+3.3.7 Administrators shall be able to reset user passwords and deactivate accounts.
+
+3.3.8 The system shall record every change to an invoice in an audit log.
+
+3.4 Non functional requirements
+
+3.4.1 The system shall respond to any search within two seconds.
+
+3.4.2 The system shall be available 99.9 percent of the time during business hours.
+
+3.4.3 The system shall support many concurrent customers without degradation.

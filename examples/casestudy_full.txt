@@ -1,0 +1,15 @@
+Emergency Coordination, Domain Description
+
+An emergency dispatch center coordinates the response to incidents in a region. When a call arrives, the dispatch center locates the incident and sends an ambulance to the scene. An ambulance reaches the scene by a ground route or by an air route and then transports the patient to a hospital. An ambulance can complete a transport only when a hospital is available to receive the patient. A hospital admits the patients that ambulances bring in and reports its bed availability to the dispatch center.
+
+The number of participating actors changes over time. There is always exactly one dispatch center. The number of hospitals that are currently accepting emergency patients ranges from none, when every hospital is on diversion, up to three. The number of ambulances on duty ranges from none, when all are busy elsewhere, up to five.
+
+Intended goal structure
+
+The Dispatch Center has the cardinality [1..1]. Its root goal to coordinate the emergency response is decomposed by AND into three leaf goals, to locate the incident, to dispatch an ambulance, and to confirm a receiving hospital. The dispatch center reaches its root goal only when it can locate the incident, dispatch an ambulance, and confirm that every ambulance on duty has a receiving hospital at the same time.
+
+The Hospital has the cardinality [0..3]. Its root goal to provide emergency care is decomposed by inclusive OR into admitting an incoming patient and reporting bed availability. A hospital reaches its root goal when it can admit an incoming patient or at least report its bed availability. Because reporting bed availability is always possible for a present hospital, every present hospital satisfies its root goal.
+
+The Ambulance has the cardinality [0..5]. It is the only actor type with three levels of decomposition. Its root goal to carry out the emergency mission is decomposed by AND into reaching the incident scene and transporting the patient to a hospital. Reaching the incident scene is decomposed by XOR into taking the ground route and taking the air route, so an ambulance reaches the scene by exactly one of the two routes. Transporting the patient to a hospital depends on a hospital that will receive the patient.
+
+Three dependency types connect the actor types and form a referral chain from the dispatch center through the ambulances to the hospitals. Transporting the patient to a hospital depends on a hospital admitting the patient, with the cardinality 1..* on the target end. An ambulance can transport a patient only when at least one hospital will admit the patient. Dispatching an ambulance depends on an ambulance transporting the patient, with the cardinality 1..* on the target end. The dispatch center can dispatch only when at least one ambulance is able to complete a transport. Confirming a receiving hospital depends on the ambulances transporting the patient, with the cardinality *..* on the target end. The dispatch center confirms readiness only when every ambulance on duty is able to complete a transport.

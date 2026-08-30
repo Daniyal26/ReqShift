@@ -1,0 +1,130 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=2.3cm,top=2.1cm,bottom=2.0cm]{geometry}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{tcolorbox}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{ink}{HTML}{16201B}
+\definecolor{accent}{HTML}{1A6B3C}
+\definecolor{muted}{HTML}{5D6B64}
+\definecolor{rule}{HTML}{D7DED9}
+\definecolor{soft}{HTML}{F4F7F5}
+\definecolor{warn}{HTML}{8A5A12}
+
+\color{ink}
+\titleformat{\section}{\large\bfseries\color{accent}}{}{0em}{}
+\titlespacing*{\section}{0pt}{13pt}{4pt}
+\setlist[itemize]{leftmargin=1.1em,itemsep=2.5pt,topsep=3pt}
+\setlength{\parskip}{4pt}
+\setlength{\parindent}{0pt}
+\pagestyle{empty}
+
+\newtcolorbox{keybox}{colback=soft,colframe=rule,boxrule=0.6pt,
+  arc=2pt,left=8pt,right=8pt,top=6pt,bottom=6pt}
+
+\newcommand{\stage}[3]{%
+  \vspace{7pt}%
+  {\bfseries\color{accent}#1\quad#2}\\[1pt]%
+  {\small\color{muted}#3}\par\vspace{2pt}}
+
+\begin{document}
+
+{\LARGE\bfseries What ReqShift does, one stage at a time}\\[3pt]
+{\color{muted}The six stages a run passes through, and what each one is for.}
+
+\vspace{4pt}
+\begin{keybox}
+\textbf{The whole idea in one line.} A language model cannot tell you when it is
+wrong, and a solver cannot read prose. So the model reads and proposes, and
+everything after that exists to check it. Only one of the six stages guesses
+anything.
+\end{keybox}
+
+\stage{1}{Reading the requirements}{read}
+The text is pulled out of the PDF and the things PDFs break are repaired: page
+headers that repeat on every page, words split across a line end, sentences
+wrapped over several lines. This matters because every finding later has to point
+back at a real sentence in your document, and a sentence broken in half cannot be
+quoted or checked.
+
+\stage{2}{Checking the document is in scope}{done}
+One cheap question before any money is spent: \emph{does this document say how
+many of each thing there can be?} That takes about ten seconds, against twenty
+minutes to discover the same thing by extracting first. A document that never
+states a quantity has nothing for the analysis to combine, and is refused with the
+reason given.
+
+\stage{3}{AI drafts a goal model}{model drafted}
+\textbf{The only stage where anything is guessed.} The model reads the whole
+document and proposes the participants, what each one has to achieve, how those
+goals break into sub-goals, who depends on whom, and how many of each there can
+be. Everything after this exists to check this step. It is a draft, and it is
+labelled as one wherever it appears.
+
+\stage{4}{Checking the model is well formed}{well formed}
+No AI here, only structure. Does every goal have an owner, does every participant
+have an overall goal, does anything point at something that is not there. A
+malformed draft is caught now rather than after nine audits have been paid for.
+
+\stage{5}{Auditing what each number counts}{the long one}
+Nine separate passes, each asking one narrow question, each a fresh call with no
+memory of the extraction so it is not anchored to the first answer. This is where
+most of the time and most of the cost goes.
+
+\begin{itemize}
+\item Does that sentence really state this maximum, or does the number count
+      something else? ``The equipment shall have six output ports'' bounds ports,
+      not clocks.
+\item Can there be \textbf{zero} of this, or did the analysis assume so? That one
+      field decides whether there is a finding at all.
+\item Are the capacity, demand and timing numbers real?
+\item Does each dependency actually exist in the text, or is it merely plausible?
+\item Are the AND/OR breakdowns and the overall goals supported by a sentence?
+\item What did the extraction \textbf{miss}? Every other pass is blind to an
+      omission, and an omission turns a real defect into a clean bill of health.
+\end{itemize}
+
+An audit is an improvement to the model, never a gate on it. One that cannot
+finish costs its own contribution and nothing else, and the model is saved after
+each pass so no failure can waste the work already done.
+
+\stage{6}{The solver proves what follows}{z3, or GoalShift}
+The audited model goes to the solver, which works out every build the bounds
+allow, checks each one, and groups them into distinct behaviours. Nothing is
+sampled and nothing is summarised.
+
+If the banner says \textbf{z3} rather than GoalShift, the model stated durations
+or capacities, which the SAT encoding would silently ignore rather than use. The
+engine follows the model rather than a dropdown, and the result then carries the
+caveat that it is not proved by the encoding the thesis describes. That is
+honesty, not an error.
+
+\section*{What comes back}
+
+\textbf{First the gap report:} the quantities the document never states, ranked by
+whether their absence can actually break something, each with the sentence it was
+read from. Every entry reports an absence, which you can check by searching your
+own document.
+
+\textbf{Then the findings:} which builds cannot work, and which participant is
+present and provably unable to do its job.
+
+\begin{keybox}
+\textbf{Read the marks.} A finding that rests on something the document does not
+state is labelled \textbf{unconfirmed} and carries the sentence it depends on. The
+solver result is correct for the model as drawn. Whether the model is right about
+your specification is the part still open, and the report says which is which
+rather than counting them together.
+\end{keybox}
+
+\vspace{6pt}
+{\footnotesize\color{muted}Model drafted by AI, analysed by GoalShift. The
+extraction is a draft for review. The analysis is proved of that draft.}
+
+\end{document}

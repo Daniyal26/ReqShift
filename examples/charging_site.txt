@@ -1,0 +1,52 @@
+TS-1180  Depot Charging Site, System Requirements
+Revision 2
+
+1. Scope
+
+This document specifies the charging site installed at a bus depot. The site is managed
+by one site controller, which is available whenever the depot has power.
+
+2. Site composition
+
+Vehicles are charged at charge points. A depot shall be equipped with at least two and at
+most six charge points.
+
+Charge points draw power through transformers. The site is fed by up to two transformers.
+
+Energy readings are collected by meters. A meter is fitted per feeder, and the feeder
+layout is decided during site design.
+
+Drivers identify themselves at authentication terminals before a charging session starts.
+Terminals are installed according to the depot layout.
+
+3. Site controller
+
+The site controller shall deliver a completed charging session. A session is complete
+when the vehicle has been authenticated, energy has been delivered and the delivered
+energy has been recorded.
+
+The site controller shall treat a vehicle as authenticated only once at least one
+authentication terminal confirms the driver.
+
+The site controller shall treat energy as delivered only once at least one charge point
+reports the session as finished.
+
+The site controller shall treat a session as recorded only once at least one meter
+reports the delivered energy for that session.
+
+4. Charge points
+
+Each charge point shall deliver energy to a connected vehicle and report the session to
+the site controller.
+
+A charge point shall only start a session while supply is available. Supply is available
+only while at least one transformer reports the feeder as energised.
+
+5. Transformers
+
+Each transformer shall supply its feeder and report its loading to the site controller.
+
+6. Meters
+
+Each meter shall measure delivered energy on its feeder and report it to the site
+controller.

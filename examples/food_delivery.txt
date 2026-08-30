@@ -1,0 +1,80 @@
+FDP-1000  Food Delivery Platform, Operational Requirements
+Revision A
+
+1. Scope
+
+This document specifies the runtime behaviour of a multi-sided food delivery platform
+connecting customers, restaurant partners, delivery riders and a central backend. It
+covers only what must hold while orders are being served; onboarding, admin tooling and
+reporting are out of scope here.
+
+2. Participants
+
+The platform backend is a single always-on service. It remains available whenever the
+system is running.
+
+Payments are handled by a single external payment provider.
+
+Restaurant partners join and leave the platform continuously. A city may be served by up
+to three restaurant partners at any one time. Restaurants close outside business hours
+and may pause orders, so the platform is expected to keep operating with a reduced set of
+active restaurants.
+
+Delivery riders go online and offline at will. Up to five riders may be online in a city
+at any one time.
+
+Up to three customers may have an order in progress at any one time.
+
+3. Platform backend
+
+The backend shall take an order from placement through to delivery. This requires that
+the order is routed to a restaurant, that payment is settled, and that the delivery is
+tracked in real time.
+
+The backend can only route an order once at least one restaurant partner is able to
+fulfil it.
+
+The backend can only track a delivery once at least one rider is able to complete it.
+
+Payment settlement requires the payment provider to authorize the charge.
+
+4. Payment provider
+
+The payment provider shall authorize and capture the charge. This requires both the
+fraud and 3-D Secure checks and the capture of funds.
+
+5. Restaurant partners
+
+A restaurant partner shall fulfil an accepted order. Fulfilment requires accepting the
+order with a stated preparation time, preparing the food and marking it ready, and
+handing the order over for pickup.
+
+6. Delivery riders
+
+A rider shall complete a delivery. A delivery consists of picking the order up at the
+restaurant and dropping it at the customer.
+
+A rider can only pick an order up once at least one restaurant partner has fulfilled it.
+
+Drop-off is confirmed either with a delivery code from the customer or with photo proof,
+but never both for the same order.
+
+7. Customers
+
+A customer shall receive the food they ordered. This requires placing an order, paying
+for it, and receiving the delivery.
+
+A customer can only discover a restaurant and place an order when at least one restaurant
+partner is able to fulfil it.
+
+A customer pays either online by card or wallet, or in cash on delivery, but never both
+for the same order.
+
+Online payment requires the payment provider to authorize the charge.
+
+The customer receives the food once at least one rider has completed the delivery.
+
+8. Availability
+
+The platform shall tolerate restaurants closing and riders going offline without
+requiring an operator restart.

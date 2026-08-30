@@ -1,0 +1,50 @@
+SPEC-2210  Mobile Dialysis Unit, Coordination Requirements
+Revision A
+
+2.1 Scope
+
+This document specifies coordination within a mobile dialysis service operating across a
+rural district. All times in this document are given in minutes.
+
+2.2 Participants
+
+The service is directed by a single scheduling office, which is staffed at all times.
+
+The district operates up to eight treatment vans. Vans are withdrawn for servicing and
+for driver rest periods, and the service is expected to continue with the vans that
+remain available.
+
+Treatment is delivered at up to three clinic sites. A site may close to new admissions
+when its water treatment plant is under maintenance.
+
+2.3 Scheduling office
+
+The scheduling office shall complete the daily treatment round. It does this by
+assigning patients to vans and by confirming that every assigned patient has been
+treated. Assigning patients takes 6 minutes. Confirming the round takes 4 minutes.
+
+The office can only confirm the round once at least one treatment van reports its
+patients as treated.
+
+The scheduling office shall complete the daily round within 120 minutes.
+
+2.4 Treatment vans
+
+A treatment van shall treat its assigned patients. To do so the van must first travel to
+a clinic site, and must then run the dialysis session.
+
+A van reaches a site either by the main road or by the forest track, but never both on
+one journey. Travel by main road takes 22 minutes. Travel by the forest track takes 35
+minutes.
+
+Running a dialysis session takes 45 minutes.
+
+A van can only run its session once a clinic site has released a treatment bay to it.
+
+2.5 Clinic sites
+
+A clinic site shall support the day's treatments. Supporting treatments means releasing
+treatment bays and logging the water quality result. Releasing a bay takes 8 minutes.
+
+Each clinic site has four treatment bays. Each treatment van occupies one bay for the
+duration of its session.

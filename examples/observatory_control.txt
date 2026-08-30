@@ -1,0 +1,45 @@
+SRS-6600  Observatory Control System, Requirements
+Revision 1
+
+2.1 Scope
+
+This document specifies the control system for the observatory. The control system
+coordinates observations, manages the instrument suite and serves processed data to
+users.
+
+2.2 Stakeholders
+
+Astronomers submit observing proposals and analyse the resulting data.
+
+Telescope operators run the nightly observing schedule from the control room.
+
+Engineers and technicians perform periodic maintenance and calibration.
+
+Software developers maintain the control software and the data pipeline.
+
+Web users retrieve published data products from the public archive.
+
+2.3 System components
+
+The control system comprises one or more scheduling processors. The remaining processors
+handle data reduction.
+
+Observations are executed by the instrument suite. Multiple instruments may be mounted at
+any one time depending on the observing programme.
+
+All internal networks shall carry both control traffic and science data.
+
+A few auxiliary sensors monitor dome conditions.
+
+2.4 Functional requirements
+
+2.4.1 The control system shall accept observing proposals and produce a nightly schedule.
+
+2.4.2 The control system shall not begin an observation unless the dome is confirmed open.
+
+2.4.3 The control system shall continue operating during the absence of the monitoring
+subsystem, although not necessarily at full capacity.
+
+2.4.4 Data reduction shall complete within a time duration to be determined.
+
+2.4.5 The archive shall serve data products to web users on request.

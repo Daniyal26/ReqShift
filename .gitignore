@@ -1,0 +1,18 @@
+# Run outputs. Every one of these is reproducible from the source plus a document,
+# and out_phaseD alone is 145 MB because an 8,192 class analysis.json is enormous.
+out/
+out_*/
+runs/
+
+# Editing backups. The project keeps a .bak-<reason> beside a file before a risky
+# change, which is useful locally and noise in a repository.
+*.bak
+*.bak-*
+*.pre-*
+
+__pycache__/
+*.pyc
+.DS_Store
+
+# Stray run logs at the top level, which out_*/ does not catch.
+out_*.log

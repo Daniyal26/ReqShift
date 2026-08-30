@@ -1,0 +1,54 @@
+SRS-2085  Modular Assembly Cell MAC-300, Control Requirements
+Revision A
+
+3.1 Scope
+
+This document specifies the control requirements for the modular assembly cell MAC-300.
+The cell is built from a catalogue of modules and is delivered in a different composition
+for each customer. One cell controller is always present.
+
+3.2 Cell composition
+
+Work is carried out at assembly modules mounted on the transfer frame. A cell shall carry
+at least one and at most four assembly modules.
+
+Parts are placed by handling robots. A robot may be shared between two neighbouring
+assembly modules, so the number of robots ordered with a cell is not fixed by this
+document.
+
+Finished assemblies are checked at test modules. Test modules are optional on cells that
+feed a downstream inspection line.
+
+Operators interact with the cell through operator panels. Panels are ordered per shift
+layout.
+
+3.3 Cell controller
+
+The cell controller shall complete an assembly job. A job is complete when every station
+step has been carried out, the assembly has been tested and the result has been recorded.
+
+The controller shall treat a station step as carried out only once at least one assembly
+module reports that step as finished.
+
+The controller shall treat an assembly as tested only once at least one test module
+reports a verdict for it.
+
+The controller shall record a job as released only once an operator has confirmed the
+result at an operator panel.
+
+3.4 Assembly modules
+
+Each assembly module shall carry out its configured station step and report completion to
+the cell controller.
+
+An assembly module shall not start a step before the part is in position. A part is in
+position only once at least one handling robot reports the part as placed.
+
+3.5 Handling robots
+
+Each handling robot shall place a part at the requested module and report the placement.
+
+3.6 Test modules
+
+Each test module shall test an assembly and report a pass or fail verdict to the cell
+controller.

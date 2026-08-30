@@ -1,0 +1,54 @@
+SRS-4100  Robotic Welding Cell, Control Requirements
+Revision C
+
+4.1 Scope
+
+This document specifies the control behaviour of welding cell WC-3 on the body-in-white
+line. The cell is supervised by a single cell controller, which remains powered
+whenever the line is energised.
+
+4.2 Cell composition
+
+The cell may operate with up to four welding robots. Robots are removed from the cell
+for scheduled maintenance and for retooling between product variants, and the cell is
+expected to continue operating with a reduced complement.
+
+Part transport into and out of the cell is performed by automated guided vehicles. Up to
+three vehicles may be assigned to the cell at any one time. Vehicles are dispatched from
+a shared fleet and may be reassigned to other cells by the plant scheduler.
+
+4.3 Cell controller
+
+The cell controller shall complete a production batch. A batch is complete when the
+controller has scheduled all jobs in the batch and has received every welded part back
+from the cell.
+
+The controller schedules jobs from the batch queue without assistance from other
+equipment in the cell.
+
+The controller shall only consider a batch part complete once at least one welding robot
+reports that part as welded.
+
+4.4 Welding robots
+
+A welding robot shall weld its assigned part. To do so the robot must first receive the
+raw part at its station, and must then run the weld program for the current variant.
+
+A robot may run either the standard weld program or the high-strength weld program for a
+given part, but never both on the same part.
+
+A robot can only receive its assigned part once at least one transport vehicle has
+delivered raw stock to the cell.
+
+4.5 Transport vehicles
+
+A transport vehicle shall deliver parts to the cell. Delivery consists of collecting
+stock from the staging area and moving it to the cell infeed buffer. Both steps are
+required for a delivery to count as complete.
+
+Vehicles operate independently of the welding robots and of each other.
+
+4.6 Availability
+
+The cell shall tolerate the loss of individual robots and vehicles without requiring an
+operator restart.

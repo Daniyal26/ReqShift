@@ -1,0 +1,2539 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ReqShift</title>
+<meta name="description" content="ReqShift finds the configuration bounds an engineering specification never states, and proves which build configurations leave a component present but unable to do its job.">
+<link rel="stylesheet" href="/shared/shift.css">
+<script src="/shared/shift.js"></script>
+<script src="/shared/shift-figure.js"></script>
+<script src="/shared/shift-ui.js"></script>
+<script src="/components.js"></script>
+<style>
+/* Tokens, scales, focus ring, motion guard, canvas grid and the severity
+   chip all come from shared/shift.css. Nothing colour-related is defined
+   here any more. */
+*{box-sizing:border-box}
+button{cursor:pointer}
+a{color:inherit}
+/* Surfaces, ink, type and the reset now come from reqshift.css, which loads
+   after this block. What stays here is the result-view styling only. */
+
+/* -------------------------------------------------------------- running */
+.stages{max-width:560px;margin:60px auto}
+.stage{display:flex;gap:14px;align-items:flex-start;padding:13px 0}
+.bead{width:26px;height:26px;flex:none;border-radius:50%;border:2px solid var(--line-2);
+  display:grid;place-items:center;font-size:12px;color:var(--ink-3);transition:.3s}
+.stage.now .bead{border-color:var(--brand);color:var(--brand);
+  box-shadow:0 0 0 5px color-mix(in oklab,var(--brand) 16%,transparent)}
+.stage.past .bead{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 4px color-mix(in oklab,var(--brand) 16%,transparent)}
+  50%{box-shadow:0 0 0 10px color-mix(in oklab,var(--brand) 4%,transparent)}}
+.stage .txt{padding-top:2px;color:var(--ink-3);font-size:14.5px;transition:.3s}
+.stage.now .txt{color:var(--ink);font-weight:600}
+.stage.past .txt{color:var(--ink-2)}
+.stage .sub{font-size:12.5px;color:var(--ink-3);font-weight:400;margin-top:2px}
+
+/* -------------------------------------------------------------- results */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:12px;
+  margin-bottom:26px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:15px 17px;box-shadow:var(--shadow)}
+.tile .k{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);
+  font-weight:600}
+.tile .v{font-size:31px;font-weight:700;letter-spacing:-.03em;margin-top:3px;
+  font-variant-numeric:tabular-nums}
+.tile .u{font-size:12px;color:var(--ink-3);margin-top:1px}
+.tile.alert .v{color:var(--sev-critical-fg)}
+.tile.clean .v{color:var(--sev-good-fg)}
+section{margin:34px 0}
+section>h2{font-size:19px;margin-bottom:4px}
+section>.lede{color:var(--ink-2);font-size:13.5px;margin-bottom:16px;max-width:70ch}
+
+/* findings */
+.finding{border:1px solid var(--line);border-left:3px solid var(--sev,var(--line-2));
+  border-radius:var(--r-md);background:var(--surface);padding:16px 18px;margin-bottom:12px;
+  box-shadow:var(--shadow)}
+.finding h3{font-size:15.5px;display:flex;align-items:center;gap:9px}
+.finding p{margin:9px 0 0;color:var(--ink-2);font-size:14px}
+.cause{margin-top:10px;padding:9px 12px;background:var(--surface-2);
+  border-radius:var(--r-sm);font-size:13.3px;color:var(--ink-2)}
+.cause b{color:var(--ink)}
+/* What the finding rests on that the document never said. Deliberately the loudest
+   thing inside the card, because its whole job is to stop the headline above it
+   being read as a proved defect in the specification. */
+.rests{margin-top:11px;padding:11px 13px;border-radius:var(--r-sm);
+  border:1px solid var(--amber-line);background:color-mix(in oklab,var(--amber) 7%,var(--surface))}
+.rests-h{display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+  font-size:13.3px;color:var(--ink);font-weight:550}
+.rests p{margin:8px 0 0;font-size:13.2px;color:var(--ink-2)}
+.rests blockquote{margin:9px 0 0;padding:7px 0 7px 12px;font-size:13.2px;
+  color:var(--ink);border-left:2px solid var(--amber-line);font-style:italic}
+.finding > .rests-f{font-size:12.6px !important;opacity:.85;margin-top:9px}
+.finding.is-unconfirmed h3 .hl{opacity:.92}
+
+/* configuration matrix */
+.matrix-wrap{overflow-x:auto;padding-bottom:4px}
+.matrix{border-collapse:separate;border-spacing:3px}
+.matrix th{font-size:11.5px;font-weight:600;color:var(--ink-3);padding:3px 6px;
+  white-space:nowrap}
+.matrix th.rowh{text-align:right}
+.cell{width:40px;height:40px;border-radius:var(--r-sm);display:grid;place-items:center;
+  font-size:12px;font-weight:700;color:#fff;cursor:default;position:relative;
+  transition:transform .12s,box-shadow .12s;border:2px solid transparent}
+.cell:hover{transform:scale(1.14);box-shadow:var(--shadow-lg);z-index:3}
+/* failure encoding lives in shift.css: hatch + notched corner, not a dot */
+.axis{font-size:12px;color:var(--ink-3);margin:8px 0 2px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-size:13px}
+.legend .it{display:flex;align-items:center;gap:7px;color:var(--ink-2)}
+.sw{width:13px;height:13px;border-radius:var(--r-sm);flex:none}
+
+/* class cards */
+.classes{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.cls{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:15px 16px;box-shadow:var(--shadow);border-top:3px solid var(--cc)}
+.cls .n{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--cc)}
+.cls h4{font-size:15px;margin:5px 0 10px}
+.pat{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.st{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:3px 9px;
+  border-radius:var(--r-pill);border:1px solid var(--line);background:var(--surface-2);
+  color:var(--ink-2)}
+.st.ok{color:var(--sev-good-fg);border-color:color-mix(in oklab,var(--sev-good-fg) 40%,transparent)}
+.st.no{color:var(--sev-critical-fg);border-color:color-mix(in oklab,var(--sev-critical-fg) 40%,transparent)}
+.cls .m{font-size:12.5px;color:var(--ink-3)}
+
+svg{display:block;max-width:100%}
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+  box-shadow:var(--shadow);padding:10px;overflow-x:auto}
+table.data{border-collapse:collapse;width:100%;font-size:13.3px}
+table.data th,table.data td{border-bottom:1px solid var(--line);padding:9px 11px;
+  text-align:left;vertical-align:top}
+table.data th{color:var(--ink-3);font-size:11.5px;letter-spacing:.05em;
+  text-transform:uppercase;font-weight:600}
+details{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:12px 16px;box-shadow:var(--shadow)}
+summary{cursor:pointer;font-weight:600;font-size:14px}
+details ul{margin:12px 0 4px;padding-left:20px;color:var(--ink-2);font-size:13.5px}
+details li{margin:8px 0}
+.err{border-left:3px solid var(--sev-critical-fg)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);opacity:0;
+  background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:var(--r-pill);
+  font-size:13.5px;pointer-events:none;transition:.25s;z-index:99}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+#tip{position:fixed;z-index:60;pointer-events:none;opacity:0;transition:opacity .12s;
+  background:var(--ink);color:var(--bg);padding:8px 11px;border-radius:var(--r-sm);
+  font-size:12.5px;line-height:1.45;max-width:260px;box-shadow:var(--shadow-lg)}
+#tip.on{opacity:1}
+#tip b{color:var(--bg)}
+
+/* ------------------------------------------------------- two-step flow */
+/* Step 1 reports what the document never states. Step 2 proves what follows
+   once the reader supplies those numbers. The bar exists so nobody mistakes a
+   provisional result, built on placeholder bounds, for the real one. */
+.steps{display:flex;gap:10px;margin:0 0 20px;flex-wrap:wrap}
+.stp{flex:1 1 280px;display:flex;gap:12px;align-items:flex-start;padding:13px 15px;
+  border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);
+  box-shadow:var(--shadow);opacity:.5;transition:.2s}
+.stp.done{opacity:1}
+.stp.on{opacity:1;border-color:var(--brand);
+  box-shadow:0 0 0 3px color-mix(in oklab,var(--brand) 13%,transparent),var(--shadow)}
+.stp .num{width:24px;height:24px;flex:none;border-radius:50%;display:grid;place-items:center;
+  font-size:12px;font-weight:700;border:2px solid var(--line-2);color:var(--ink-3)}
+.stp.on .num{border-color:var(--brand);color:var(--brand)}
+.stp.done .num{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.stp .t{font-size:14px;font-weight:650}
+.stp .d{font-size:12.5px;color:var(--ink-3);margin-top:2px;line-height:1.45}
+.banner.provisional{border-color:color-mix(in oklab,var(--sev-warning-fg) 45%,var(--line));
+  background:color-mix(in oklab,var(--sev-warning-fg) 8%,var(--surface))}
+.banner.answered{border-color:color-mix(in oklab,var(--sev-good-fg) 45%,var(--line));
+  background:color-mix(in oklab,var(--sev-good-fg) 7%,var(--surface))}
+.tile.provisional .v{color:var(--ink-3)}
+.tile .prov{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;
+  color:var(--sev-warning-fg);margin-top:3px}
+
+/* the folds on the result page */
+.techbox{background:none;border:1px dashed var(--line-2);box-shadow:none;
+  border-radius:var(--r-md);padding:14px 18px;margin:30px 0}
+.techbox[open]{background:var(--surface);border-style:solid;box-shadow:var(--shadow);
+  padding-bottom:4px}
+.techbox>summary{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+  font-size:14px;color:var(--ink-2)}
+.techbox[open]>summary{color:var(--ink);padding-bottom:6px;
+  border-bottom:1px solid var(--line);margin-bottom:2px}
+.techbox .ft{font-weight:650}
+.techbox .fn{font-size:12.3px;color:var(--ink-3);font-weight:400}
+.techbody>section:first-child{margin-top:18px}
+
+/* the one-sentence verdict each step opens with */
+.verdict{margin:6px 0 22px;font-size:clamp(21px,2.5vw,27px);line-height:1.32;
+  letter-spacing:-.02em;font-weight:650;max-width:31ch;text-wrap:balance}
+.verdict .hi{color:var(--brand-strong)}
+.verdict .bad{color:var(--sev-critical-fg)}
+.verdict small{display:block;margin-top:9px;font-size:13.7px;font-weight:400;
+  color:var(--ink-2);letter-spacing:0;max-width:64ch;line-height:1.55}
+
+/* the answer form on a gap card */
+.ans{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-top:13px;
+  padding-top:12px;border-top:1px dashed var(--line)}
+.ans .fld{display:flex;flex-direction:column;gap:4px}
+.ans .fld>span{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:600}
+.ans input{width:118px;font:inherit;font-size:14px;padding:7px 9px;color:var(--ink);
+  border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--surface-2);
+  font-variant-numeric:tabular-nums}
+.ans input:focus{outline:2px solid var(--focus);outline-offset:1px;border-color:var(--focus)}
+.ans .why{flex:1 1 220px;font-size:12.5px;color:var(--ink-3);line-height:1.5}
+.ans.bad input{border-color:var(--sev-critical-fg)}
+.ans.bad .why{color:var(--sev-critical-fg)}
+.gapbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:16px;
+  padding:14px 16px;border:1px solid var(--line);border-radius:var(--r-md);
+  background:var(--surface-2)}
+.gapbar .hint{flex:1 1 260px}
+.given{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 10px;
+  border-radius:var(--r-pill);font-family:var(--font-mono);
+  color:var(--sev-good-fg);background:var(--surface);
+  border:1px solid color-mix(in oklab,var(--sev-good-fg) 40%,transparent)}
+</style>
+<!-- The ReqShift layer loads last on purpose: it redefines the tokens that the
+     result-view rules above are written against, so the whole product moves to
+     the new palette without those rules being rewritten one by one. -->
+<link rel="stylesheet" href="/reqshift.css">
+</head>
+<body>
+
+
+
+<main>
+<div id="railHost"></div>
+
+<!-- ============================================================ INPUT -->
+<div class="view on" id="vInput">
+
+  <!-- ---------------------------------------------------------------- hero -->
+  <section class="rx-hero">
+    <div class="rx-label bare" style="justify-content:center">Engineering specification analysis</div>
+    <h1>Find the gaps your specification leaves behind.</h1>
+    <p class="lede">ReqShift reads engineering specifications, identifies missing configuration
+      bounds, and proves which system configurations can leave a component
+      <b>present but unable to do its job</b>.</p>
+    <p class="sub">Before those gaps become expensive system failures.</p>
+  </section>
+
+  <!-- ------------------------------------------------------- document intake -->
+  <div class="rx-intake" id="drop">
+    <div class="rx-intake-head">
+      <div class="rx-seg" role="tablist" aria-label="How to provide your specification">
+        <button role="tab" id="tabPaste" aria-controls="panePaste" aria-selected="true"
+                data-mode="paste"></button>
+        <button role="tab" id="tabFile" aria-controls="paneFile" aria-selected="false"
+                data-mode="file"></button>
+      </div>
+      <span class="hint" id="intakeHint">Two pages on how the system is put together is enough.</span>
+    </div>
+
+    <div class="rx-pane on" id="panePaste" role="tabpanel" aria-labelledby="tabPaste">
+      <textarea id="txt" spellcheck="false" aria-label="Paste your specification"
+        placeholder="Paste one or more pages from an engineering specification.
+
+It works best on the pages describing what the system is made of. The kinds of machine or
+component involved, how many of each can be present, and what each one needs from the others."></textarea>
+    </div>
+
+    <div class="rx-pane" id="paneFile" role="tabpanel" aria-labelledby="tabFile">
+      <div class="rx-drop" id="dropInner" tabindex="0" role="button"
+           aria-label="Choose a PDF, or drop one here">
+        <div class="ring" id="dropRing"></div>
+        <div class="t">Drop a PDF here</div>
+        <div class="s">or <span class="browse">browse from your computer</span></div>
+        <div class="n">Text-based PDFs are supported. A scan holds pictures of words, not words.</div>
+      </div>
+    </div>
+
+    <div class="rx-intake-note" id="intake" hidden></div>
+
+    <div class="rx-intake-foot">
+      <span id="ctaSlot"></span>
+      <span class="rx-cta-note" id="wordCount"><b>Step 1 of 2</b> &middot; no solver required yet</span>
+      <span class="grow"></span>
+      <span id="advSlot"></span>
+    </div>
+  </div>
+
+  <div class="rx-sample">
+    <button class="rx-samplebtn" id="sampleBtn">
+      <span>Try the bottling line example</span><span class="k">210 words</span>
+    </button>
+    <span>a real specification, with two quantities it never states</span>
+    <span class="grow"></span>
+    <button class="rx-btn quiet" id="moreSamples">More examples</button>
+  </div>
+
+  <div id="sampleList" hidden></div>
+  <input type="file" id="file" accept=".pdf,.txt,.md,.text" hidden>
+
+  <!-- --------------------------------------------------------- trust strip -->
+  <div id="trustSlot"></div>
+
+  <!-- -------------------------------------------------------- how it works -->
+  <section class="rx-section" id="how">
+    <div id="howHead"></div>
+    <div class="rx-steps" id="howSteps"></div>
+    <div class="rx-flow" id="howFlow"></div>
+  </section>
+
+  <!-- ------------------------------------------------------ what it finds -->
+  <section class="rx-section" id="finds">
+    <div id="findsHead"></div>
+    <div class="rx-preview">
+      <div class="rx-preview-bar">
+        <span class="dots"><i></i><i></i><i></i></span>
+        <span class="file">bottling_line.pdf</span>
+        <span class="grow" style="flex:1"></span>
+        <span>Step 1 of 2 &middot; gap report</span>
+      </div>
+      <div class="rx-preview-body" id="previewBody"></div>
+    </div>
+  </section>
+
+  <footer class="rx-foot">
+    <div class="in">
+      <span id="footLogo"></span>
+      <span class="grow"></span>
+      <span>AI proposes &middot; an independent audit checks &middot; the solver proves</span>
+    </div>
+  </footer>
+</div>
+
+<!-- ========================================================== RUNNING -->
+<div class="view" id="vRun">
+  <div class="rx-wait">
+    <div class="stages" id="stageList"></div>
+    <div class="rx-elapsed"><b id="elapsed">0:00</b><span>elapsed</span></div>
+    <p class="hint" style="text-align:center">
+      Reading and auditing the document is the slow part and takes most of the
+      wait. The solver itself is fast, from milliseconds on a short document to
+      about a minute on a long one.
+    </p>
+    <button class="ghost rx-cancel" id="cancelRun">Cancel</button>
+  </div>
+</div>
+
+<!-- ========================================================== RESULTS -->
+<div class="view" id="vOut"></div>
+
+<!-- ============================================================ ERROR -->
+<div class="view" id="vErr">
+  <div class="card pad err">
+    <h2 id="errTitle">That did not work</h2>
+    <div id="errBody"></div>
+    <div class="actions"><button class="go" onclick="show('vInput')">Back</button></div>
+  </div>
+</div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+<div id="tip"></div>
+
+<script>
+/* =========================================================== utilities */
+const $ = s => document.querySelector(s);
+const el = (t, c, h) => { const n = document.createElement(t);
+  if (c) n.className = c; if (h != null) n.innerHTML = h; return n; };
+const esc = s => String(s ?? '').replace(/[&<>"]/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// One ramp, shared with GoalShift, defined in shared/shift.css. It WRAPS at 8
+// instead of clamping, which is what used to collapse every class from 6 upward
+// into a single grey.
+/* One call for both modes: the screen ramp, or a print pattern reference.
+   Branching at the call sites is what let the two tools disagree before. */
+const CC = n => Shift.figure.classFill(n);
+const FIG = () => Shift.figure.isOn();
+
+/* The figure filename has to identify the model. ReqShift never named one
+   either, so it comes from the actor labels, which at least tells two runs
+   apart in a folder. */
+function modelName(){
+  try {
+    const a = (LAST && LAST.spec && LAST.spec.actors) || [];
+    const labs = a.map(x => x.label || x.type).filter(Boolean);
+    if (labs.length) return labs.slice(0, 4).join('-');
+  } catch (e) {}
+  return 'requirements-model';
+}
+function classCount(){
+  try { return LAST && LAST.result ? LAST.result.stats.classes : null; }
+  catch (e) { return null; }
+}
+
+function resetShell(){
+  const shell = document.querySelector('.rx-shell');
+  if (!shell) return;
+  const out = $('#vOut');
+  shell.parentNode.insertBefore(out, shell);
+  shell.remove();
+  $('#railHost').innerHTML = '';
+  if (SPY) { SPY.disconnect(); SPY = null; }
+}
+
+function show(id){ document.querySelectorAll('.view').forEach(v =>
+  v.classList.toggle('on', v.id === id));
+  // The rail belongs to the results view only; it used to linger behind the
+  // input and running views as a stray blue rule.
+  const rail = document.querySelector('.rx-rail');
+  if (rail) rail.hidden = (id !== 'vOut');
+  const shell = document.querySelector('.rx-shell');
+  if (shell) shell.style.gridTemplateColumns = (id === 'vOut') ? '' : 'minmax(0,1fr)';
+  $('#againBtn').style.display = (id === 'vOut' || id === 'vErr') ? '' : 'none';
+  window.scrollTo({top:0, behavior:'smooth'}); }
+
+const toast = (m) => Shift.toast(m);
+
+const tip = $('#tip');
+function bindTip(node, html){
+  node.addEventListener('mouseenter', () => { tip.innerHTML = html; tip.classList.add('on'); });
+  node.addEventListener('mousemove', e => {
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = Math.min(e.clientX + 14, innerWidth - w - 10) + 'px';
+    tip.style.top  = Math.max(10, e.clientY - h - 12) + 'px'; });
+  node.addEventListener('mouseleave', () => tip.classList.remove('on'));
+}
+
+/* app.py is out of scope for this pass and serves only /, /api/* and /shared/*,
+   so it cannot hand out GoalShift itself. This points at wherever GoalShift is
+   being served; adjust the port if you run it elsewhere. One route in app.py
+   would make this same-origin and remove the constant entirely. */
+const GOALSHIFT_URL = (localStorage.getItem('reqshift-goalshift-url')
+  || 'http://localhost:8014/index.html');
+
+/* ============================================== shared suite header ==== */
+/* ---------------------------------------------------------- navigation ----
+   ReqShift has its own top bar rather than the shared suite header, because the
+   product needs its own identity, its own links, and a Figure Mode control that
+   reads as a spec switch. Theme and Figure Mode still go through the shared
+   APIs, so the two tools cannot drift apart on behaviour. */
+Shift.restoreTheme();
+RX.applyFavicon();
+(function mountNav(){
+  const again = RX.Button('New analysis', {
+    variant: 'quiet', onClick: () => show('vInput')
+  });
+  again.id = 'againBtn';
+  again.style.display = 'none';
+
+  const fig = RX.FigureModeButton(() => Shift.figure.toggle(),
+                                  () => Shift.figure.isOn());
+  const theme = RX.ThemeButton(
+    () => Shift.setTheme(Shift.theme() === 'dark' ? 'light' : 'dark'),
+    () => Shift.theme());
+  const goal = RX.Button('GoalShift', {
+    variant: 'quiet', title: 'The solver this is built on',
+    onClick: () => window.open(GOALSHIFT_URL, '_blank', 'noopener')
+  });
+  /* GoalShift is the thing that does the actual proving, and as bare text in the
+     corner it read as an afterthought. Its own mark, the one it uses in its own
+     header, makes it read as the sibling product it is. */
+  (function () {
+    const m = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    m.setAttribute('viewBox', '0 0 64 64');
+    m.setAttribute('width', '15');
+    m.setAttribute('height', '15');
+    m.setAttribute('aria-hidden', 'true');
+    m.style.flex = '0 0 auto';
+    m.innerHTML =
+      '<rect x="3" y="3" width="58" height="58" rx="15" fill="var(--brand)"/>' +
+      '<path d="M18,47 C15,34 24,30 32,27.5" fill="none" stroke="#fff" ' +
+        'stroke-width="4.2" stroke-linecap="round"/>' +
+      '<circle cx="18" cy="47" r="4.4" fill="#fff"/>' +
+      '<circle cx="43" cy="22" r="8.6" fill="none" stroke="#fff" stroke-width="4"/>' +
+      '<circle cx="43" cy="22" r="3" fill="#fff"/>';
+    goal.insertBefore(m, goal.firstChild);
+  })();
+
+  const jump = id => () => {
+    show('vInput');
+    const t = document.getElementById(id);
+    if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  const nav = RX.TopNavigation({
+    home: '#top',
+    links: [
+      { label: 'How it works',    href: '#how',   onClick: jump('how') },
+      { label: 'What it finds',   href: '#finds', onClick: jump('finds') },
+      { label: 'Example analysis', href: '#finds', onClick: () => loadSample(true) }
+    ],
+    actions: [again, goal, fig, theme]
+  });
+  document.body.insertBefore(nav, document.body.firstChild);
+
+  const skip = RX.el('a', 'rx-skip', 'Skip to the specification input');
+  skip.href = '#txt';
+  document.body.insertBefore(skip, nav);
+})();
+
+/* ------------------------------------------------- homepage composition ----
+   Built from components rather than written out as markup, so the same pieces
+   carry the result screens too. */
+(function buildHome(){
+  const SEG = {
+    paste: { icon: 'paste',  label: 'Paste specification' },
+    file:  { icon: 'upload', label: 'Upload PDF' }
+  };
+  document.querySelectorAll('.rx-seg button').forEach(b => {
+    const m = SEG[b.dataset.mode];
+    b.appendChild(RX.icon(m.icon));
+    b.appendChild(RX.el('span', null, m.label));
+    b.addEventListener('click', () => setMode(b.dataset.mode));
+  });
+  $('#dropRing').appendChild(RX.icon('upload'));
+  $('#footLogo').appendChild(RX.Logo({ size: 18 }));
+
+  $('#trustSlot').appendChild(RX.EvidenceCard({ items: [
+    { icon: 'link', title: 'Every finding links to its source sentence',
+      body: 'Nothing is asserted without the words it came from, so any claim can be '
+          + 'checked against your own document.' },
+    { icon: 'layers', title: 'AI proposes, an audit checks, the solver proves',
+      body: 'Reading is the only step where anything is guessed, and a separate pass '
+          + 'audits what each extracted number actually counts.',
+      chain: '<span class="ai">READ</span><span>&rarr;</span>'
+           + '<span class="ai">AUDIT</span><span>&rarr;</span>'
+           + '<span class="gp">GAPS</span><span>&rarr;</span>'
+           + '<span class="pv">PROVE</span>' },
+    { icon: 'proof', title: 'Configuration results are solver-proved',
+      body: 'Not sampled, not summarised. Every configuration your bounds allow is '
+          + 'checked, and the outcome classes are proved to cover all of them.' }
+  ]}));
+
+  $('#howHead').appendChild(RX.PageHeader({
+    label: 'How it works',
+    title: 'Read, find the gaps, then prove',
+    lede: 'Three stages. The first is the only one where anything is proposed rather '
+        + 'than established, and it is marked that way wherever it appears.'
+  }));
+  const steps = $('#howSteps');
+  [
+    { index: '01', tone: 'ai', title: 'AI reads the specification',
+      lede: 'A PDF or pasted text becomes a structured model of the system.',
+      points: ['PDF read without breaking sentences across page breaks',
+               'Participants, dependencies and stated bounds extracted',
+               'Every element linked back to the sentence it came from'] },
+    { index: '02', tone: 'gap', title: 'ReqShift finds what was never stated',
+      lede: 'Each extracted number is audited against its own sentence, and what the '
+          + 'document never gave becomes the report.',
+      points: ['Missing bounds listed, never invented',
+               'Ranked by what their absence can actually break',
+               'Critical means the system may be built with none of them'] },
+    { index: '03', tone: 'proof', title: 'The solver tests every configuration',
+      lede: 'Once you supply the missing numbers, every build the specification '
+          + 'permits is checked.',
+      points: ['Configurations that work',
+               'Configurations that cannot work',
+               'Components present but unable to reach their goal'] }
+  ].forEach(st => steps.appendChild(RX.PipelineStep(st)));
+
+  $('#howFlow').innerHTML =
+    '<span class="ai">READ</span><span class="sep">&rarr;</span>'
+    + '<span class="ai">CHECK</span><span class="sep">&rarr;</span>'
+    + '<span class="gp">FIND GAPS</span><span class="sep">&rarr;</span>'
+    + '<span>COMPLETE</span><span class="sep">&rarr;</span>'
+    + '<span class="pv">PROVE</span>'
+    + '<span class="sep" style="margin-left:auto">the detailed pipeline is in the '
+    + 'result, under Full technical analysis</span>';
+
+  $('#findsHead').appendChild(RX.PageHeader({
+    label: 'What it finds',
+    title: 'What comes back, on any specification',
+    lede: 'The step one report, in the form you receive it. Every entry names the '
+        + 'quantity, why its absence matters, and the sentence it was read from.'
+  }));
+
+  /* ---- BEGIN GENERATED PREVIEW, written by bench/make_preview.py.
+     Do not edit by hand: it is a real run's output, which is the only
+     reason the page can claim to show what the pipeline returns. ---- */
+  const PREVIEW = {
+    "file": "bottling_line.txt",
+    "metrics": [
+      {
+        "label": "Unstated quantities",
+        "value": 2,
+        "unit": "both critical",
+        "tone": "bad"
+      },
+      {
+        "label": "Participants found",
+        "value": 4,
+        "unit": "and 3 dependencies"
+      },
+      {
+        "label": "Solver",
+        "value": "held",
+        "unit": "until you supply them",
+        "tone": "soft"
+      }
+    ],
+    "gaps": [
+      {
+        "severity": "critical",
+        "title": "Capping Unit",
+        "what": "The document never states how many of these can be present at once.",
+        "why": "<b>Why it matters.</b> Capping Unit supplies Line Controller, and the specification allows there to be none at all. Whether any exist changes the result. The maximum does not: 1, 2 or 3 give the same outcome, so the minimum is the number that needs deciding.",
+        "source": "Multiple capping units may be fitted depending on throughput requirements."
+      },
+      {
+        "severity": "critical",
+        "title": "Pallet Shuttle",
+        "what": "The document never states how many of these can be present at once.",
+        "why": "<b>Why it matters.</b> Pallet Shuttle supplies Line Controller, and the specification allows there to be none at all. Whether any exist changes the result. The maximum does not: 1, 2 or 3 give the same outcome, so the minimum is the number that needs deciding.",
+        "source": "Finished crates are removed by pallet shuttles. The number of shuttles assigned to the line varies with plant scheduling."
+      }
+    ]
+  };
+  /* ---- END GENERATED PREVIEW ---- */
+
+  /* Rendered from PREVIEW, which is a real run's output spliced in by
+     bench/make_preview.py. The panel used to be hand written prose that claimed to
+     be what the pipeline returns. That was true the day it was typed and had no way
+     of staying true, and the wording had already drifted from the tool. */
+  const pv = $('#previewBody');
+  if (PREVIEW) {
+    const f = document.querySelector('.rx-preview-bar .file');
+    if (f) f.textContent = PREVIEW.file;
+    pv.appendChild(RX.MetricRow(PREVIEW.metrics));
+    PREVIEW.gaps.forEach(g => pv.appendChild(RX.GapCard(g)));
+  }
+})();
+
+/* =============================================================== theme */
+/* Theme now lives in the shared header. Re-render on change because the SVGs
+   bake resolved colours into attributes. */
+document.addEventListener('shift:theme', () => { if (LAST) render(LAST); });
+/* Figure Mode changes what the diagrams are made of — pattern fills instead of
+   colour fills, a different type scale — so the results are rebuilt, not
+   restyled. */
+document.addEventListener('shift:figure', () => { if (LAST) render(LAST); });
+
+/* ============================================================== input */
+const txt = $('#txt');
+
+/* The two buttons in the intake footer are components, built before the page is
+   composed because buildHome() puts them into their slots. */
+const GO_BTN = RX.Button('Find specification gaps', {
+  variant: 'primary', size: 'lg', icon: 'arrow',
+  onClick: () => startJob()
+});
+GO_BTN.id = 'goBtn';
+GO_BTN.disabled = true;
+
+const ADV_BTN = RX.Button('Advanced', {
+  variant: 'quiet',
+  onClick: () => {
+    const box = $('#advBox');
+    box.hidden = !box.hidden;
+    ADV_BTN.setAttribute('aria-expanded', box.hidden ? 'false' : 'true');
+  }
+});
+ADV_BTN.setAttribute('aria-expanded', 'false');
+ADV_BTN.setAttribute('aria-controls', 'advBox');
+$('#ctaSlot').appendChild(GO_BTN);
+$('#advSlot').appendChild(ADV_BTN);
+
+function words(){ return txt.value.trim() ? txt.value.trim().split(/\s+/).length : 0; }
+
+function syncInput(){
+  const n = words();
+  $('#wordCount').innerHTML = n
+    ? '<b>' + n.toLocaleString() + ' words</b> &middot; step 1 of 2, no solver required yet'
+    : '<b>Step 1 of 2</b> &middot; no solver required yet';
+  GO_BTN.disabled = n < 12;
+}
+txt.addEventListener('input', syncInput);
+
+/* Paste or upload. Two modes, and the page never leaves the reader wondering
+   which one they are in. */
+function setMode(mode){
+  document.querySelectorAll('.rx-seg button').forEach(b =>
+    b.setAttribute('aria-selected', b.dataset.mode === mode ? 'true' : 'false'));
+  $('#panePaste').classList.toggle('on', mode === 'paste');
+  $('#paneFile').classList.toggle('on', mode === 'file');
+  $('#intakeHint').textContent = mode === 'file'
+    ? 'The text read out of the PDF is shown before anything is analysed.'
+    : 'Two pages on how the system is put together is enough.';
+  if (mode === 'paste') txt.focus();
+}
+
+/* Drag and drop. A PDF goes to the server, which is where pdfplumber lives, and
+   the text it read comes back into the box so the reader can see what was actually
+   taken out of their document before paying for an extraction. */
+(function dropZone(){
+  const box = $('#drop');
+  let depth = 0;
+  const over = on => { depth = on ? depth + 1 : Math.max(0, depth - 1);
+    box.classList.toggle('is-drop', depth > 0); };
+  ['dragenter','dragover'].forEach(e => box.addEventListener(e, ev => {
+    ev.preventDefault(); if (ev.type === 'dragenter') over(true); }));
+  ['dragleave'].forEach(e => box.addEventListener(e, () => over(false)));
+  box.addEventListener('drop', ev => {
+    ev.preventDefault(); depth = 0; box.classList.remove('is-drop');
+    const f = (ev.dataTransfer.files || [])[0];
+    if (f) takeFile(f);
+  });
+})();
+
+async function takeFile(f){
+  if (/\.(docx?|xlsx?|pptx?)$/i.test(f.name))
+    return toast(f.name.split('.').pop().toUpperCase() + ' cannot be read yet. '
+      + 'Save it as PDF, or paste the text.');
+  if (/\.pdf$/i.test(f.name)){
+    if (f.size > 25e6) return toast('That PDF is larger than 25 MB.');
+    $('#wordCount').textContent = 'Reading ' + f.name + '…';
+    const buf = new Uint8Array(await f.arrayBuffer());
+    // btoa in chunks: spreading a whole PDF into String.fromCharCode blows the
+    // argument limit on anything but a tiny file.
+    let bin = '';
+    for (let i = 0; i < buf.length; i += 8192)
+      bin += String.fromCharCode.apply(null, buf.subarray(i, i + 8192));
+    let r;
+    try {
+      r = await (await fetch('/api/read', {method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name: f.name, data: btoa(bin)})})).json();
+    } catch (e) { return toast('Could not reach the server. ' + e.message); }
+    if (r.error){ txt.dispatchEvent(new Event('input')); return toast(r.error); }
+    txt.value = r.text;
+    txt.dispatchEvent(new Event('input'));
+    showIntake(r);
+    return;
+  }
+  if (f.size > 2e6) return toast('That file is larger than 2 MB. Paste the relevant pages instead.');
+  const r = new FileReader();
+  r.onload = () => { txt.value = String(r.result || '');
+    txt.dispatchEvent(new Event('input'));
+    toast('Loaded ' + f.name); };
+  r.onerror = () => toast('That file could not be read.');
+  r.readAsText(f);
+}
+
+/* What was done to the document, said out loud. A reader who can see that 39
+   sentences were rejoined across page breaks can judge whether the text below is
+   their document; one who is told nothing cannot. */
+function showIntake(r){
+  const box = $('#intake');
+  box.innerHTML = '<b>' + esc(r.name) + '</b> read: ' + r.pages + ' page'
+    + (r.pages === 1 ? '' : 's') + ', ' + r.words.toLocaleString() + ' words. '
+    + 'The text is in the paste tab. Check it is your document before analysing it.'
+    + (r.notes.length
+        ? '<ul>' + r.notes.map(n => '<li>' + esc(n) + '</li>').join('') + '</ul>'
+        : '');
+  box.hidden = false;
+  setMode('paste');
+}
+
+const pick = () => $('#file').click();
+$('#dropInner').addEventListener('click', pick);
+$('#dropInner').addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); }
+});
+$('#file').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (f) takeFile(f);
+  e.target.value = '';        // so the same file can be picked twice
+});
+
+/* Advanced holds the engine, the prose write-up and the extractor name. A first
+   time reader should not have to know any of it, and an engineer on a call can
+   open it in one click. */
+(function advanced(){
+  const box = RX.el('div', 'rx-intake-note');
+  box.id = 'advBox';
+  box.hidden = true;
+  box.innerHTML =
+    '<div style="display:flex;gap:22px;flex-wrap:wrap;align-items:center">'
+    + '<label style="display:inline-flex;gap:8px;align-items:center">Engine '
+    + '<select id="engine">'
+    + '<option value="sat">GoalShift (SAT), proved by the thesis encoding</option>'
+    + '<option value="smt">z3 (SMT), integer counts and timing</option></select></label>'
+    + '<label style="display:inline-flex;gap:8px;align-items:center">'
+    + '<input type="checkbox" id="explain"> Write the findings up in prose</label>'
+    + '<span class="mono" id="backendTag" style="color:var(--ink-3)">checking&hellip;</span>'
+    + '</div>';
+  $('#drop').insertBefore(box, $('.rx-intake-foot'));
+})();
+
+fetch('/api/backends').then(r => r.json()).then(d => {
+  $('#backendTag').textContent = d.backends.length
+    ? 'extractor: ' + d.backends[0] : 'no extractor available';
+  if (d.smt === false){
+    const o = document.querySelector('#engine option[value="smt"]');
+    if (o){ o.disabled = true; o.textContent = 'z3 (SMT), not installed'; }
+  }
+  if (!d.backends.length){
+    $('#backendTag').style.color = 'var(--danger)';
+    GO_BTN.title = 'No extraction backend available. Sign in to the CLI, or set an API key.';
+    $('#advBox').hidden = false;      // otherwise the reason is hidden behind a click
+  }
+});
+
+/* Samples. One is promoted by name, because a first time reader should not have
+   to find their own document to understand the product. */
+const SAMPLES = { list: [] };
+
+function loadText(name, andRun){
+  return fetch('/api/example?name=' + encodeURIComponent(name))
+    .then(r => r.json())
+    .then(r => {
+      txt.value = r.text;
+      syncInput();
+      setMode('paste');
+      $('#intake').hidden = true;
+      $('#sampleList').hidden = true;
+      txt.scrollTop = 0;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (andRun) startJob();
+    });
+}
+const loadSample = andRun => loadText('bottling_line.txt', andRun);
+
+$('#sampleBtn').onclick = () => loadSample(false);
+
+fetch('/api/examples').then(r => r.json()).then(d => {
+  SAMPLES.list = d.examples;
+  const box = $('#sampleList');
+  box.className = 'rx-metrics';
+  box.style.marginTop = '12px';
+  d.examples.forEach(x => {
+    const b = RX.el('button', 'rx-metric', '<div class="k">' + x.words
+      + ' words</div><div style="font-weight:570;margin-top:5px">' + esc(x.title)
+      + '</div><div class="u">' + esc((x.subtitle || '').slice(0, 54)) + '</div>');
+    b.type = 'button';
+    b.style.cssText = 'text-align:left;border:0;cursor:pointer';
+    b.onclick = () => loadText(x.name, false);
+    box.appendChild(b);
+  });
+});
+
+$('#moreSamples').onclick = () => {
+  const box = $('#sampleList');
+  box.hidden = !box.hidden;
+  $('#moreSamples').querySelector('span').textContent =
+    box.hidden ? 'More examples' : 'Hide examples';
+};
+
+/* ============================================================ run loop */
+let POLL = null, LAST = null, TICK = null, T0 = 0, CANCELLED = false;
+
+function startClock(){
+  T0 = Date.now(); CANCELLED = false;
+  const out = $('#elapsed');
+  const paint = () => {
+    const s = Math.floor((Date.now() - T0) / 1000);
+    out.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  };
+  paint();
+  clearInterval(TICK);
+  TICK = setInterval(paint, 1000);
+}
+function stopClock(){ clearInterval(TICK); TICK = null; }
+
+/* Cancel is client-side: app.py owns the job and this file may not touch it, so
+   we stop polling and return the user to their text rather than pretending the
+   server work was killed. The wording says so. */
+$('#cancelRun').onclick = () => {
+  CANCELLED = true;
+  clearInterval(POLL); POLL = null;
+  stopClock();
+  show('vInput');
+  toast('Stopped watching. The extraction may still finish on the server.');
+};
+
+async function startJob(opts){
+  opts = opts || {};
+  CANCELLED = false;
+  const body = { text: txt.value, explain: $('#explain').checked,
+                 engine: $('#engine').value };
+  // `screen:false` is how "Extract anyway" gets past an out-of-scope verdict.
+  if (opts.screen === false) body.screen = false;
+  drawStages({stages: [
+    {id:'read',label:'Reading the requirements'},
+    ...(body.screen === false ? []
+        : [{id:'screen',label:'Checking the document is in scope'}]),
+    {id:'extract',label:'AI drafts a goal model'},
+    {id:'check',label:'Checking the model is well formed'},
+    {id:'audit',label:'Auditing what each number counts'},
+    {id:'solve', label: body.engine === 'smt'
+        ? 'z3 proves what follows' : 'GoalShift proves what follows'},
+    ...(body.explain ? [{id:'write',label:'Writing the findings up'}] : [])
+  ], stage:'read'});
+  show('vRun');
+  startClock();
+  const r = await fetch('/api/analyze', {method:'POST',
+    headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  const j = await r.json();
+  if (j.error) return fail('Could not start', [j.error]);
+  clearInterval(POLL);
+  POLL = setInterval(() => poll(j.id), 900);
+}
+
+/* the primary action is bound on GO_BTN, above */
+
+async function poll(id){
+  if (CANCELLED) return;
+  const j = await (await fetch('/api/job?id=' + id)).json();
+  drawStages(j);
+  if (j.state === 'running') return;
+  clearInterval(POLL);
+  stopClock();
+  if (j.state === 'out_of_scope') { LAST = j; return renderOutOfScope(j); }
+  if (j.state === 'error') return fail(
+    {malformed:'The extracted model is malformed',
+     invalid:(j.engine === 'smt' ? 'z3 rejected the model'
+                                 : 'GoalShift rejected the model'),
+     backend:'Could not reach the extractor',
+     crash:'Something broke'}[j.error_kind] || 'That did not work',
+    j.errors, j.kept_model);
+  LAST = j; render(j);
+}
+
+function drawStages(j){
+  const list = $('#stageList'); list.innerHTML = '';
+  const ids = (j.stages || []).map(s => s.id);
+  const at = ids.indexOf(j.stage);
+  (j.stages || []).forEach((s, i) => {
+    const cls = i < at ? 'past' : i === at ? 'now' : '';
+    const row = el('div', 'stage ' + cls);
+    row.appendChild(el('div', 'bead', i < at ? '✓' : String(i + 1)));
+    const SUB = {
+      read:    'counting words and splitting sentences',
+      extract: 'reading every sentence, this is the slow part',
+      check:   'names, owners, roots and multiplicities',
+      solve:   'enumerating configurations, one solver check at a time',
+      write:   'rewording the proved findings, adding nothing'
+    };
+    const DONE = {
+      read: 'read', extract: 'model drafted', check: 'well formed',
+      solve: 'proved', write: 'written'
+    };
+    row.appendChild(el('div', 'txt', esc(s.label) +
+      (i === at ? '<div class="sub">' + esc(SUB[s.id] || '') + '</div>' : '') +
+      (i < at ? '<div class="sub">' + esc(DONE[s.id] || 'done') + '</div>' : '')));
+    list.appendChild(row);
+  });
+}
+
+function fail(title, errors, kept){
+  $('#errTitle').textContent = title;
+  let html = '<ul>' + (errors || []).map(e => '<li>' + esc(e) + '</li>').join('') + '</ul>';
+  /* Reading and auditing a long specification costs minutes and real money. When
+     something downstream of that fails, the model it already produced is kept, and
+     saying so is the difference between a lost afternoon and a re-run that costs
+     nothing. Re-analysing calls no language model at all. */
+  if (kept) html +=
+    '<p style="margin-top:14px"><b>Your extracted model was saved.</b> Nothing has to '
+    + 'be read again. It is in <span class="mono">' + esc(kept) + '</span>, and you can '
+    + 'analyse it without another extraction:</p>'
+    + '<pre class="mono" style="margin-top:8px;padding:10px;border-radius:8px;'
+    + 'background:var(--surface-2);overflow-x:auto">py -3 reqshift.py --spec '
+    + esc(kept) + '/model.spec.json -o out_recovered/analysis</pre>';
+  $('#errBody').innerHTML = html;
+  show('vErr');
+}
+
+/* ============================================================== render */
+// An out-of-scope verdict is an ANSWER, not an error. Ten real requirements
+// documents were all out of scope, and each would otherwise have cost minutes of
+// extraction to produce a model with billions of configurations that hangs the
+// solver. Saying so in ten seconds is the feature.
+function renderOutOfScope(j){
+  resetShell();
+  const out = $('#vOut'); out.innerHTML = '';
+  const n = el('section');
+  n.innerHTML =
+    '<h2>This document is out of scope</h2>' +
+    '<p class="lead">' + esc(j.reason || (j.screen && j.screen.reason) || '') + '</p>' +
+    '<p>The analysis works out which combinations of parts leave something unable ' +
+    'to do its job. That needs the document to say <b>how many</b> of each part ' +
+    'there can be. This one does not, so there is nothing to combine.</p>' +
+    '<p>Nothing was extracted, so this cost seconds rather than minutes.</p>' +
+    '<div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">' +
+      '<button class="ghost" data-oos="again">Try another document</button>' +
+      '<button class="ghost" data-oos="force">Extract anyway</button>' +
+    '</div>' +
+    '<p class="muted" style="margin-top:12px">Extracting anyway usually produces a ' +
+    'model built on invented numbers. On ten real documents, 95% of the bounds the ' +
+    'AI produced were not supported by the text.</p>';
+  out.appendChild(n);
+  // Scoped to this node on purpose. Several ids on this page are reused by other
+  // views, so getElementById would hand back somebody else's button.
+  const f = n.querySelector('[data-oos="force"]');
+  if (f) f.onclick = () => startJob({screen:false});
+  const a = n.querySelector('[data-oos="again"]');
+  if (a) a.onclick = () => show('vInput');
+  show('vOut');
+}
+
+/* Same three words the gap report uses, so the two halves of the product never
+   describe one flag two ways. Top level on purpose: the gap cards read it well
+   before the findings section declares anything, and a `const` used above its own
+   declaration line throws rather than reading as undefined. */
+const WHY_DOUBTED = {
+  'unsupported': 'no sentence states it',
+  'added': 'an audit added it',
+  'added-then-rejected': 'one audit added it and another rejected it',
+  'uncorroborated': 'a second reading did not draw it'};
+
+/* Which solver is actually running. GoalShift is the SAT encoding the thesis
+   describes; a model that states durations or capacities switches to z3, and naming
+   the wrong one would claim the thesis proved something it did not. */
+function solverName(){
+  return (LAST && LAST.engine === 'smt') ? 'z3' : 'GoalShift';
+}
+
+function render(j){
+  const {spec, result, findings, summary, trace, writeup} = j;
+  const order = result.order;
+  const lab = {}; spec.actors.forEach(a => lab[a.type] = a.label || a.type);
+  const card = {}; spec.actors.forEach(a => card[a.type] = [a.lo, a.hi]);
+  const problems = findings.filter(f => f.kind !== 'inert-cardinality');
+  // A finding is `proved: false` when it rests on an input the document never
+  // states. Both the tiles and the findings list read it, so it is derived once.
+  const openCount = problems.filter(f => f.proved === false).length;
+  const BLOCKING = problems.filter(f => f.kind === 'blocked'
+                                     || f.kind === 'initial-degraded');
+  resetShell();
+  const out = $('#vOut'); out.innerHTML = '';
+  // The whole result used to be one ~2000px scroll with no way to see its
+  // shape. Sections get ids, and a sticky rail is built from them below.
+  const SEC = [];
+  const sect = (id, label, count, where) => {
+    const n = el('section'); n.id = 'sec-' + id;
+    SEC.push({ id: 'sec-' + id, label, count, where: where || 'main' });
+    return n;
+  };
+  const smt = (j.engine === 'smt') || result.engine === 'smt';
+
+  /* ---- the two steps ----
+     Step 1 is the gap report: the quantities the document never states. Step 2 is
+     this same analysis re-proved after the reader supplies them. Until they do,
+     every unstated bound is standing in for a number nobody has, so the counts
+     below are placeholders and are labelled as such. */
+  const gapList = j.gaps || [];
+  const given = j.supplied || {};             // actor type -> {lo, hi}
+  const givenN = Object.keys(given).length;
+  const answerable = g => (g.kind || 'cardinality') === 'cardinality';
+  const openGaps = gapList.filter(g => !(answerable(g) && given[g.actor]));
+  const step = givenN ? 2 : 1;
+  const provisional = step === 1 && openGaps.length > 0;
+  const brokenConfigs = result.classes
+    .filter(c => c.pattern.some(p => p === 'X'))
+    .reduce((n, c) => n + (c.configurations ?? c.members.length), 0);
+
+  const steps = el('div', 'steps');
+  const stepCard = (n, t, d, cls) => {
+    const s = el('div', 'stp ' + cls);
+    s.appendChild(el('div', 'num', cls === 'done' ? '✓' : String(n)));
+    const b = el('div'); b.append(el('div', 't', t), el('div', 'd', d));
+    s.appendChild(b); return s;
+  };
+  steps.append(
+    stepCard(1, 'Step 1. What this document does not specify',
+      gapList.length
+        ? gapList.length + ' unstated ' + (gapList.length === 1 ? 'quantity' : 'quantities')
+          + ', ' + (gapList.filter(g => g.severity === 'critical').length)
+          + ' of them critical.'
+        : 'Nothing missing. Every count this analysis needs is stated in the document.',
+      step === 2 || !gapList.length ? 'done' : 'on'),
+    stepCard(2, 'Step 2. What follows from your numbers',
+      step === 2
+        ? result.stats.configurations.toLocaleString() + ' configurations, '
+          + brokenConfigs.toLocaleString() + ' of them broken. Proved, not asserted.'
+        : gapList.length
+          ? 'Fill the quantities in below and ' + solverName()
+            + ' re-proves the model, in seconds rather than minutes, with no AI call.'
+          : 'Proved from the numbers the document itself gives.',
+      step === 2 || !gapList.length ? 'on' : ''));
+  out.appendChild(steps);
+
+  // Screen 2 in one line: the reader is told the document was found suitable,
+  // in the same words the out-of-scope screen uses when it is not.
+  const banner = el('div', 'banner' + (smt ? ' smt' : ''));
+  banner.innerHTML = smt
+    ? '<span>⚠️</span><span>Analysed by <b>z3 (SMT)</b>, not by GoalShift'
+      + (j.engine_reason ? ', because ' + esc(j.engine_reason) : '') + '. '
+      + 'Integer counts, timing and capacity are available here, but this result is '
+      + '<b>not</b> proved by the encoding the thesis describes. Say which engine '
+      + 'produced it whenever you show it.</span>'
+    : '<span>✓</span><span>Analysed by <b>GoalShift</b>, the SAT encoding the '
+      + 'thesis describes.</span>';
+  // On step 1 the engine is not the story and the banner is filed with the numbers
+  // it produced. On step 2 it is the proof claim, so it stays in front.
+  const engineBanner = banner;
+  /* A dependency the audit cannot tie to a single sentence is KEPT and flagged.
+     It used to be removed. On the first real specification that emptied the model
+     of 9 of its 26 dependencies and the analysis came back with no problems at
+     all, which is the most dangerous output this tool can produce. A false alarm
+     can be traced to a sentence and dismissed; silence cannot be inspected. */
+  const sChanged = j.structure_changed || [];
+  const sFlag = (j.structure_flagged || []).length
+    || sChanged.filter(c => c[1] === 'unsupported').length;
+  const sFix = sChanged.length - sFlag;
+  if (sChanged.length){
+    const b = el('div', 'banner');
+    b.innerHTML = '<span>&#9432;</span><span>'
+      + (sFix > 0 ? '<b>' + sFix + '</b> dependency multiplicit'
+          + (sFix === 1 ? 'y was' : 'ies were') + ' corrected against the document. ' : '')
+      + (sFlag ? '<b>' + sFlag + '</b> dependenc' + (sFlag === 1 ? 'y is' : 'ies are')
+          + ' in the model without one sentence that states '
+          + (sFlag === 1 ? 'it' : 'them') + ', and '
+          + (sFlag === 1 ? 'it was' : 'they were') + ' kept on purpose. A finding that '
+          + 'rests on one can be traced back and dismissed. Removing them made a real '
+          + 'specification come back with no problems at all. ' : '')
+      + sChanged.map(c => '<span class="mono">' + esc(c[0]) + '</span>').join(', ')
+      + '</span>';
+    out.appendChild(b);
+  }
+
+  /* An edge the extraction missed and a later pass recovered. This is the only
+     audit that makes the model claim MORE, so it is announced rather than folded
+     in quietly: a reader who sees a defect is entitled to know that the edge under
+     it was drawn by the audit and to read the sentence behind it. Two readings of
+     one specification agreed on their bounds and disagreed on every finding over
+     exactly one of these. */
+  const depAdd = j.dep_added || [];
+  if (depAdd.length){
+    const b = el('div', 'banner');
+    b.innerHTML = '<span>&#9432;</span><span><b>' + depAdd.length + '</b> dependenc'
+      + (depAdd.length === 1 ? 'y the extraction missed was' : 'ies the extraction '
+        + 'missed were')
+      + ' recovered from the document and added, each with a sentence behind '
+      + (depAdd.length === 1 ? 'it' : 'them') + '. A finding may rest on '
+      + (depAdd.length === 1 ? 'it' : 'one of them') + ', so check the quote in the '
+      + 'report before acting on such a finding. '
+      + depAdd.map(a => '<span class="mono">' + esc(a[0]) + '</span>').join(', ')
+      + '</span>';
+    out.appendChild(b);
+  }
+
+  /* An omission is the one failure the other audits cannot see, and it is the one
+     that turns a defect into "no problems found". So it is said before the result,
+     not filed underneath it, and it is explicitly NOT applied to the model. */
+  const miss = j.recall || {};
+  const missN = (miss.missing_actors || []).length + (miss.missing_deps || []).length;
+  if (missN){
+    const b = el('div', 'banner provisional');
+    b.innerHTML = '<span>⚠️</span><span>This analysis may be <b>incomplete</b>. The '
+      + 'document appears to describe ' + missN + ' thing'
+      + (missN === 1 ? '' : 's') + ' the extracted model does not contain: '
+      + (miss.missing_actors || []).map(a =>
+          '<b>' + esc(a.name) + '</b>').join(', ')
+      + ((miss.missing_actors || []).length && (miss.missing_deps || []).length ? ', ' : '')
+      + (miss.missing_deps || []).map(d =>
+          '<span class="mono">' + esc(d.depender) + ' &larr; ' + esc(d.provider) + '</span>')
+          .join(', ')
+      + '. Nothing was added to the model, so review these before trusting a clean '
+      + 'result.</span>';
+    out.appendChild(b);
+  }
+
+  const dFlag = j.decomp_flagged || [];
+  const dFix = j.decomp_fixed || [];
+  if (dFlag.length || dFix.length){
+    const b = el('div', 'banner');
+    b.innerHTML = '<span>&#9432;</span><span>'
+      + (dFix.length ? '<b>' + dFix.length + '</b> breakdown'
+          + (dFix.length === 1 ? '' : 's') + ' corrected against the document. ' : '')
+      + (dFlag.length ? '<b>' + dFlag.length + '</b> breakdown'
+          + (dFlag.length === 1 ? ' is' : 's are') + ' in the model without a sentence '
+          + 'that states ' + (dFlag.length === 1 ? 'it' : 'them') + ', and '
+          + (dFlag.length === 1 ? 'it was' : 'they were') + ' kept on purpose: removing '
+          + 'a breakdown makes its goal trivially satisfied, which would hide defects '
+          + 'rather than reveal them. ' : '')
+      + '</span>';
+    out.appendChild(b);
+  }
+
+  if (step === 2){
+    const names = Object.keys(given).map(t =>
+      '<span class="given">' + esc(lab[t] || t) + ' ' + given[t].lo + '..'
+      + given[t].hi + '</span>').join(' ');
+    const b = el('div', 'banner answered');
+    b.innerHTML = '<span>✓</span><span>Proved from <b>' + givenN + ' '
+      + (givenN === 1 ? 'quantity' : 'quantities') + ' you supplied</b>, not from '
+      + 'anything the AI guessed. ' + names
+      + (openGaps.length ? ' <br>' + openGaps.length + ' further '
+        + (openGaps.length === 1 ? 'quantity is' : 'quantities are')
+        + ' still unstated, listed below.' : '')
+      + '</span>';
+    out.appendChild(b);
+  }
+
+  /* ---- the verdict ----
+     One sentence, before any grid. A reader who stops here should still have the
+     answer, and on step 1 the answer is a count of missing numbers, not a count of
+     configurations. */
+  const vd = el('div', 'verdict');
+  const crit = gapList.filter(g => g.severity === 'critical').length;
+  if (step === 1 && gapList.length)
+    vd.innerHTML = 'This document leaves <span class="hi">' + gapList.length
+      + '</span> ' + (gapList.length === 1 ? 'quantity' : 'quantities')
+      + ' unstated.'
+      + (crit ? ' <span class="bad">' + crit + '</span> of them can leave the system '
+        + 'unable to work.' : '')
+      + '<small>Each one is a decision somebody makes during design that this '
+      + 'document does not record. Fill them in below and the analysis becomes yours.</small>';
+  else if (!gapList.length)
+    vd.innerHTML = 'Every quantity this analysis needs is <span class="hi">stated in '
+      + 'your document</span>.<small>That is rare. Across 31 public engineering '
+      + 'documents, none managed it.</small>';
+  else
+    vd.innerHTML = result.stats.configurations.toLocaleString() + ' build '
+      + (result.stats.configurations === 1 ? 'configuration' : 'configurations') + '. '
+      + (brokenConfigs
+         ? '<span class="bad">' + brokenConfigs.toLocaleString() + '</span> of them cannot work.'
+         : '<span class="hi">All of them work.</span>')
+      + '<small>Proved from the numbers you supplied, and the '
+      + result.stats.classes + ' behavior '
+      + (result.stats.classes === 1 ? 'class covers' : 'classes cover') + ' all '
+      + result.stats.configurations.toLocaleString() + ', so '
+      + result.stats.classes + ' test '
+      + (result.stats.classes === 1 ? 'scenario is' : 'scenarios are') + ' enough.</small>';
+  out.appendChild(vd);
+
+  /* ---- what the document never said ----
+     Findings are things the solver PROVED about the model. These are things the
+     document never stated, so the model had to be built without them. On ten real
+     requirements documents 95% of extracted bounds had no support in the text,
+     which makes this the more common outcome of the two, and on step 1 it is the
+     deliverable, so it goes first. */
+  const gapSection = () => {
+    if (!gapList.length) return null;
+    const done = step === 2 && !openGaps.length;
+    const gs = sect('gaps', done ? 'Gaps closed'
+                    : step === 2 ? 'Still not specified' : 'Not specified',
+                    openGaps.length || undefined);
+    gs.append(el('h2', null, done
+        ? 'What this document does not specify, and you did'
+        : step === 2 ? 'What this document still does not specify'
+        : 'What this document does not specify'),
+      el('p','lede', done
+        ? 'The document never states these ' + gapList.length + ' quantities.'
+        : step === 2
+        ? 'You supplied ' + givenN + ' of these. The rest are still open, and each '
+          + 'one is a decision somebody makes during design that is not written down.'
+        : 'Ranked by what the absence can actually break. Where a number can answer '
+          + 'it, type it in and press the button underneath. The rest need a sentence '
+          + 'in the document itself.'));
+    if (j.screen && j.screen.in_scope === false)
+      gs.appendChild(el('div','card pad','This document was not written to describe a '
+        + 'system whose composition varies, so some of these may be deliberate rather '
+        + 'than accidental.'));
+
+    // One input pair per open gap. The draft survives a failed submit and an
+    // "edit these numbers" round trip, so nothing typed is ever lost.
+    const draft = j.draft || (j.draft = {});
+    const inputs = {};
+    const list = step === 2 ? openGaps : gapList;
+    const askable = list.filter(answerable);
+
+    // An empty form is the wrong thing to show, but "nothing left to ask" has TWO
+    // causes and they are not the same message. Either the reader answered
+    // everything, or nothing here was ever answerable by typing a number, because
+    // only a missing cardinality can be. Keying on `askable` alone told a reader who
+    // had supplied nothing that the gaps were "answered by numbers you gave", and
+    // returned early so the gap itself was never displayed at all.
+    if (!askable.length && givenN){
+      gs.appendChild(el('div','card pad','All ' + gapList.length + ' of them are now '
+        + 'answered by numbers you gave. The result above is proved from those, and '
+        + 'the gaps remain worth writing back into the document itself, because the '
+        + 'next person to read it will be missing exactly what you just supplied.'));
+      const back = el('div', 'actions');
+      const b = el('button', 'ghost', 'Change the numbers you gave');
+      b.onclick = clearAnswers;
+      back.appendChild(b);
+      gs.appendChild(back);
+      return gs;
+    }
+    if (!askable.length)
+      gs.appendChild(el('div','card pad','None of these can be answered by typing a '
+        + 'number here. Each one needs a sentence written into the document itself, '
+        + 'so there is nothing to fill in and the analysis above already reflects '
+        + 'everything the document does give.'));
+
+    ['critical','high','medium','low'].forEach(sv => {
+      const block = list.filter(g => g.severity === sv);
+      if (!block.length) return;
+      gs.appendChild(el('h3', null, sv[0].toUpperCase() + sv.slice(1)
+        + ' (' + block.length + ')'));
+      block.forEach(g => {
+        const a = spec.actors.find(x => x.type === g.actor) || {};
+
+        // What the audit found, put into words. It answers one question, "what
+        // does this number count?", so a failure comes back as "nothing, the
+        // sentence gives no number, only the word multiple". Quoted raw that
+        // reads badly and says the same thing twice, so the empty answer becomes
+        // the sentence and only the informative remainder survives.
+        let why = esc(g.why_it_matters);
+        if (g.effect_says) why += '<br><br>' + esc(g.effect_says);
+        /* The flag, on the claim it produced. A gap ranked critical because something
+           needs this participant is only as good as the edge that said so, and on a
+           fresh document the one critical gap rested entirely on an edge the structure
+           audit had already rejected. Two scopes, and the difference matters: a
+           capacity or demand gap would not EXIST without its edge, while a cardinality
+           gap is real either way and only its RANKING is in doubt. */
+        (g.rests_on || []).forEach(r => {
+          const existence = g.rests_on_scope === 'existence';
+          why += '<br><br><b>' + (existence
+              ? 'This gap exists only because of a dependency the audits doubted'
+              : 'Its ranking rests on a dependency the audits doubted')
+            + ' (' + esc(WHY_DOUBTED[r.why] || 'doubted') + '): </b>'
+            + '<span class="mono">' + esc(r.what) + '</span><br>' + esc(r.note)
+            + (r.quote ? '<br><i>' + esc(r.quote) + '</i>' : '')
+            + '<br>' + (existence
+              ? 'Without that dependency there is no pair to complete, so this question '
+                + 'may not need answering at all.'
+              : 'The missing number is still missing, and you can check that by searching '
+                + 'the document. What is in doubt is how much it matters.');
+        });
+        let source = null, sourceLabel = null;
+        if (g.verdict === 'wrong_unit'){
+          why += '<br><br>A number <i>was</i> taken from the document for this, '
+            + '<span class="mono">' + esc(String(g.claimed_bound_that_failed))
+            + '</span>, but it counts ' + esc(g.what_the_document_says || 'something else')
+            + '. Anyone reading quickly could make the same mistake.';
+          source = g.source_the_number_came_from || null;
+          sourceLabel = 'The sentence the number came from';
+        } else if (g.what_the_document_says){
+          const said = String(g.what_the_document_says);
+          let rest = said.replace(/^nothing[,.]?\s*/i, '');
+          const wasNone = rest !== said;
+          rest = rest.replace(/^(the )?sentences?\s+(gives?|give)\s+no\s+[a-z ]+?(?:,|\.|\s+and\s+|$)\s*/i, '')
+                     .replace(/^says\s+/i, 'it says ')
+                     .replace(/\.$/, '');
+          why += '<br><br>' + (wasNone
+            ? 'The document gives no number here' + (rest ? ', ' + esc(rest) : '') + '.'
+            : 'The document says: ' + esc(said));
+          source = g.source_the_number_came_from || null;
+        }
+
+        const ans = answerable(g) ? el('div', 'ans') : null;
+        const n = RX.GapCard({
+          severity: g.severity,
+          title: g.label,
+          what: g.question + ' ' + g.to_decide,
+          why: why,
+          source: source,
+          sourceLabel: sourceLabel,
+          body: ans || undefined
+        });
+        if (!ans){
+          // Nothing to type here. What this gap needs is a sentence in the
+          // document, not a number in this form, and saying which is the point.
+          n.appendChild(el('div', 'rx-note',
+            'This one is not answered by a number here. ' + esc(g.to_decide)));
+          gs.appendChild(n);
+          return;
+        }
+        const d = draft[g.actor] || {};
+        const fld = (key, label, ph) => {
+          const f = el('div', 'fld');
+          const i = el('input');
+          i.type = 'number'; i.min = '0'; i.step = '1';
+          i.placeholder = ph;
+          i.value = d[key] ?? '';
+          i.setAttribute('aria-label', label + ' number of ' + (g.label || g.actor));
+          i.addEventListener('input', () => {
+            (draft[g.actor] = draft[g.actor] || {})[key] = i.value;
+            ans.classList.remove('bad');
+            syncBar();
+          });
+          i.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !runBtn.disabled) runBtn.click();
+          });
+          f.append(el('span', null, label), i);
+          return [f, i];
+        };
+        const [fLo, iLo] = fld('lo', 'Fewest', String(a.lo ?? 0));
+        const [fHi, iHi] = fld('hi', 'Most', a.hi_unknown ? 'not stated' : String(a.hi ?? 1));
+        inputs[g.actor] = {lo: iLo, hi: iHi, row: ans, label: g.label};
+        ans.append(fLo, fHi, el('div', 'why',
+          'How many of these can the system have at once, fewest and most? '
+          + (a.hi_unknown
+             ? 'The analysis is currently standing in ' + (a.lo ?? 0) + '..' + (a.hi ?? 1)
+               + ' because the document gives nothing.'
+             : 'The analysis currently uses ' + (a.lo ?? 0) + '..' + (a.hi ?? 1)
+               + ', which the audit could not support.')));
+        gs.appendChild(n);
+      });
+    });
+
+    /* ---- the step 2 trigger ---- */
+    const bar = el('div', 'gapbar');
+    const runBtn = el('button', 'go big', 'Run proof analysis');
+    const note = el('span', 'hint');
+    bar.append(runBtn, note);
+    function filled(){
+      const picked = {};
+      Object.entries(inputs).forEach(([type, io]) => {
+        const lo = io.lo.value.trim(), hi = io.hi.value.trim();
+        if (lo === '' && hi === '') return;
+        picked[type] = {lo, hi, io};
+      });
+      return picked;
+    }
+    function syncBar(){
+      const n = Object.keys(filled()).length;
+      runBtn.disabled = !n;
+      note.textContent = n
+        ? n + ' of ' + askable.length + ' filled in. Nothing is sent to the AI. '
+          + solverName() + ' re-proves the model in seconds rather than minutes.'
+        : 'Fill in at least one pair above. Leave the rest blank and they stay '
+          + 'on the list as open gaps.';
+    }
+    runBtn.onclick = () => {
+      const vals = filled();
+      const clean = {}; let bad = null;
+      Object.entries(vals).forEach(([type, v]) => {
+        v.io.row.classList.remove('bad');
+        const lo = v.lo === '' ? 0 : Number(v.lo);
+        const hi = v.hi === '' ? lo : Number(v.hi);
+        if (!Number.isInteger(lo) || !Number.isInteger(hi) || lo < 0 || hi < lo){
+          v.io.row.classList.add('bad');
+          bad = bad || (hi < lo
+            ? 'The most ' + v.io.label + ' cannot be fewer than the fewest.'
+            : 'Counts must be whole numbers, zero or more.');
+          return;
+        }
+        clean[type] = {lo, hi};
+      });
+      if (bad) return toast(bad);
+      // Same two limits the server enforces, checked here so the answer is
+      // instant instead of arriving after a fifteen second solve. Both are
+      // measured, not guessed. See MAX_INSTANCES in app.py.
+      let space = 1;
+      for (const a of spec.actors){
+        const v = clean[a.type] || {lo: a.lo, hi: a.hi};
+        space *= Math.max(0, v.hi - v.lo) + 1;
+        if (v.hi > 20 && clean[a.type]){
+          inputs[a.type].row.classList.add('bad');
+          return toast((a.label || a.type) + ' at ' + v.hi + ' is more than GoalShift '
+            + 'can enumerate. It reasons about every instance separately, so give the '
+            + 'range you actually care about, or switch the engine to z3.');
+        }
+      }
+      if (space > 20000)
+        return toast('Those numbers describe ' + space.toLocaleString()
+          + ' configurations, too many to enumerate one at a time. Narrow the widest '
+          + 'range and try again.');
+      applyAnswers(clean);
+    };
+    syncBar();
+    gs.appendChild(el('p','lede','Every item above reports something the document does '
+      + 'not contain. That is checkable: search the document and see.'));
+    // Only when there is something to fill in. On a document whose gaps are all
+    // capacity or timing, nothing here is answerable by a number, and a disabled
+    // button telling the reader to "fill in at least one pair above" points at a
+    // form that does not exist.
+    if (askable.length) gs.appendChild(bar);
+
+    if (step === 2){
+      const back = el('div', 'actions');
+      const b = el('button', 'ghost', 'Change the numbers you gave');
+      b.onclick = clearAnswers;
+      back.appendChild(b);
+      gs.appendChild(back);
+    }
+    return gs;
+  };
+
+  // On step 1 the gap report IS the result, so it leads. On step 2 the proof does.
+  const gapNode = step === 1 ? gapSection() : null;
+  if (gapNode) out.appendChild(gapNode);
+
+  /* ---- the two collapsing boxes ----
+     A result page with nine sections open at once reads as a lab report. Only the
+     deliverable for the current step stays open. On step 1 that is the gap list, and
+     the numbers underneath are folded away, because they were computed from
+     placeholders and a customer reading "13 of 16 broken" would be misled. */
+  const fold = (kind, title, note) => {
+    const d = el('details', 'techbox');
+    const s = el('summary');
+    s.innerHTML = '<span class="ft">' + esc(title) + '</span>'
+      + (note ? '<span class="fn">' + esc(note) + '</span>' : '');
+    d.append(s);
+    const body = el('div', 'techbody');
+    d.appendChild(body);
+    d.dataset.host = kind;
+    // Whether a fold is open is a decision the reader made, so it survives the
+    // re-render that step 2 causes. Opening the technical detail and then answering
+    // the gaps used to shut it again.
+    d.open = !!(j.folds && j.folds[kind]);
+    d.addEventListener('toggle', () => {
+      (j.folds = j.folds || {})[kind] = d.open;
+      refreshRail();
+    });
+    return [d, body];
+  };
+  const [provBox, provBody] = fold('prov', 'What can be proved before you answer',
+    'built on placeholder numbers, so read it as provisional');
+  const [techBox, techBody] = fold('tech', 'Full technical analysis',
+    'every configuration, the goal model, the statechart, traceability');
+  if (provisional) provBody.appendChild(engineBanner);
+  else out.appendChild(engineBanner);
+
+  // Step 1 folds the proof away. Step 2 puts it in front, because by then it is
+  // the customer's own numbers being proved.
+  const proof = provisional ? provBody : out;
+
+  /* ---- tiles ---- */
+  const tiles = el('div', 'tiles');
+  const tile = (k, v, u, c) => { const t = el('div', 'tile' + (c ? ' ' + c : ''));
+    t.append(el('div','k',k), el('div','v',v), el('div','u',u || '')); return t; };
+  // A configuration count built on placeholder bounds is not the customer's count,
+  // so the tile says so rather than quietly showing a number that will change.
+  const prov = (t) => { if (!provisional) return t;
+    t.classList.add('provisional'); t.appendChild(el('div','prov','placeholder'));
+    return t; };
+  const working = result.stats.configurations - brokenConfigs;
+  tiles.append(
+    prov(tile('Configurations', result.stats.configurations,
+         'every build the bounds allow')),
+    prov(tile('Work', working.toLocaleString(),
+         'every component reaches its goal', brokenConfigs ? '' : 'clean')),
+    // The biggest number on the page, and on OPTCL every one of those 96
+    // configurations came from a single dependency the audit had already rejected.
+    // If nothing blocking survives as proved, the tile says so rather than leaving
+    // the count to be read as an established fault.
+    prov(tile('Cannot work', brokenConfigs.toLocaleString(),
+         !brokenConfigs ? 'every build works'
+         : (BLOCKING.some(f => f.proved !== false)
+            ? 'a component is present and blocked'
+            : 'blocked, but on an unconfirmed dependency'),
+         brokenConfigs ? 'alert' : 'clean')),
+    /* The count is not monotonic, so it must never read as a score. Worded as what it
+       buys: this many test scenarios cover every build above. */
+    prov(tile('Outcome classes', result.stats.classes,
+         result.stats.classes === 1
+           ? 'one behaviour, every build alike'
+           : 'test scenarios that cover all ' + result.stats.configurations.toLocaleString())),
+    // The tile is the number a reader repeats to someone else, so it says up front
+    // how many of them still rest on an assumption rather than on the document.
+    tile('Findings', problems.length,
+         !problems.length ? 'none found'
+         : (openCount
+            ? openCount + (openCount === 1 ? ' rests' : ' rest') + ' on an assumption'
+            : 'need a decision')));
+  proof.appendChild(tiles);
+  // Encoding size and solver-call counts are how the answer was reached, not what it
+  // says. An engineer asking "is this real?" wants them, a first-time reader does not,
+  // so they open the technical fold rather than the result.
+  const solverTiles = el('div', 'tiles');
+  solverTiles.append(
+    tile('Encoding', result.stats.variables + ' / ' + result.stats.clauses,
+         'variables / clauses'),
+    tile(smt ? 'SMT checks' : 'SAT checks', result.stats.sat_calls ?? '–',
+         smt ? 'solver queries' : 'not assignments'));
+  if (smt && result.stats.regions)
+    solverTiles.appendChild(tile('Regions', result.stats.regions,
+      'counted, not enumerated'));
+  techBody.appendChild(solverTiles);
+  if (provisional) out.appendChild(provBox);
+
+  /* ---- write-up ---- */
+  if (writeup){
+    const s = sect('means', 'What this means', undefined, provisional ? 'prov' : 'main');
+    s.append(el('h2', null, 'What this means'),
+      el('p', 'lede', 'Written by AI from the findings GoalShift proved. It rewords them '
+        + 'and may not add to them.'));
+    const c = el('div', 'card pad');
+    c.innerHTML = mdLite(writeup);
+    s.appendChild(c); proof.appendChild(s);
+  }
+
+  /* ---- findings ---- */
+  const fs = sect('findings', 'Findings', problems.length,
+                  provisional ? 'prov' : 'main');
+  fs.append(el('h2', null, 'Findings'),
+    el('p','lede','Each one was proved by ' + (smt ? 'z3' : 'GoalShift')
+      + ' from the model. None came from the AI.'
+      + (openCount
+         ? ' ' + (openCount === 1 ? 'One rests' : openCount + ' rest')
+           + ' on something the document does not state, and '
+           + (openCount === 1 ? 'is marked' : 'are marked') + ' below.'
+         : '')));
+  /* How each unstated input reads in a sentence. The reader gets the distinction,
+     not the internal name. */
+  const WHY_UNCONFIRMED = {
+    'unsupported': 'a dependency no sentence states',
+    'added': 'a dependency an audit added',
+    'assumed-absent': 'an absence the document never permits in writing',
+    'added-then-rejected': 'a dependency one audit added and another threw out',
+    'unsupported-breakdown': 'a breakdown no sentence states',
+    'unsupported-root': 'an overall goal the document never settles',
+    'wrong-root': 'an overall goal the audit reads differently'};
+  /* "Nothing to report" reads as the tool having failed to find anything, when a clean
+     result is the outcome the whole exercise aims at. Say what it means. */
+  if (!problems.length)
+    fs.appendChild(el('div','card pad',
+      '<b>This is the result you want, not an empty one.</b> Every build this '
+      + 'specification permits behaves the same way, and every participant that can be '
+      + 'present can meet its goal in all of them. That is what a specification looks '
+      + 'like when it has said enough about its own composition for the question to '
+      + 'have a single answer.'));
+  // The word on the chip. Which SEVERITY each kind is now lives in shift.js, so
+  // the two apps cannot drift apart on it.
+  const SEV_WORD = {blocked:'blocked', 'never-satisfied':'unreachable',
+    'initial-degraded':'startup', 'inert-cardinality':'no effect',
+    'capacity-limit':'capacity', 'deadline-miss':'deadline',
+    'deadline-unreachable':'deadline'};
+  findings.forEach(f => {
+    const sev = Shift.severityOf(f.kind);
+    const word = SEV_WORD[f.kind] || 'note';
+    const n = el('div','finding');
+    n.style.setProperty('--sev', 'var(--sev-' + sev + '-line)');
+    // The chip carries it too, so a reader scanning the headlines cannot come away
+    // with a defect that the detail below would have qualified.
+    const open = f.proved === false;
+    if (open) n.classList.add('is-unconfirmed');
+    n.appendChild(el('h3', null,
+      '<span class="sev is-' + sev + '">' + word + '</span>'
+      + (open ? '<span class="sev is-warning">unconfirmed</span>' : '')
+      + '<span class="hl">' + esc(f.headline) + '</span>'));
+    if (f.kind === 'blocked')
+      n.appendChild(el('p', null, 'Present and provably unable to meet its root goal in '
+        + 'class' + (f.classes.length > 1 ? 'es' : '') + ' ' + f.classes.join(', ')
+        + ', covering <b>' + f.configs + ' of ' + result.stats.configurations
+        + '</b> configurations. For example <span class="mono">'
+        + esc(f.example) + '</span>.'));
+    if (f.kind === 'initial-degraded')
+      n.appendChild(el('p', null, 'The system starts as <span class="mono">'
+        + esc(f.present) + '</span>, its minimum configuration. There, '
+        + esc(f.unmet.join(', ')) + ' is present but unsatisfied.'));
+    if (f.kind === 'never-satisfied')
+      n.appendChild(el('p', null, 'Reaches its root goal in none of the '
+        + result.stats.configurations + ' configurations.'));
+    if (f.kind === 'capacity-limit')
+      n.appendChild(el('p', null, 'The requirements allow up to ' + f.declared_max
+        + ' of them, but ' + esc(f.provider) + ' capacity only supports <b>'
+        + f.ceiling + '</b>. Each one consumes ' + f.demand + ' and each '
+        + esc(f.provider) + ' supplies ' + f.capacity + '. The declared upper bound '
+        + 'is not the real one.'));
+    if (f.kind === 'deadline-miss')
+      n.appendChild(el('p', null, 'The stated limit is ' + f.deadline
+        + ' and the soonest this can finish is <b>' + f.soonest + '</b>, a shortfall of '
+        + (+f.shortfall).toFixed(2).replace(/\.?0+$/, '') + '. That is the best case, '
+        + 'with every choice made favourably.'));
+    if (f.kind === 'deadline-unreachable')
+      n.appendChild(el('p', null, 'Its root goal cannot be satisfied in any '
+        + 'configuration, so the deadline is unreachable for a reason that has '
+        + 'nothing to do with timing.'));
+    if (f.kind === 'inert-cardinality')
+      n.appendChild(el('p', null, 'The range is allowed by the requirements but '
+        + 'changes no outcome anywhere in the model.'));
+    (f.causes || []).forEach(c => n.appendChild(el('div','cause',
+      'Cause: <b>' + esc(c.from) + '</b> depends on <b>' + esc(c.to) + '</b> from '
+      + esc(c.provider) + ' <span class="mono">' + esc(c.mult) + '</span>, '
+      + (c.why === 'absent' ? 'and the requirements permit zero of them.'
+                            : 'which is itself unsatisfied there, so it cascades.'))));
+    /* The flag, on the claim it produced. It used to stop at the edge, in a banner
+       counting nine flagged dependencies, while the finding built on one of those
+       nine sat here reading as proved. That is how the tool published a defect its
+       own audit had already rejected, twice, on a real specification. */
+    (f.rests_on || []).forEach(r => {
+      const w = el('div', 'rests');
+      w.appendChild(el('div', 'rests-h', '<span class="sev is-warning">unconfirmed</span>'
+        + 'Rests on ' + esc(WHY_UNCONFIRMED[r.why] || 'an unstated input')
+        + ': <span class="mono">' + esc(r.what) + '</span>'));
+      w.appendChild(el('p', null, esc(r.note)));
+      if (r.quote) w.appendChild(el('blockquote', null, esc(r.quote)));
+      n.appendChild(w);
+    });
+    // Once for the finding, not once per mark. A finding can rest on several
+    // things and repeating the instruction under each one reads as noise.
+    if ((f.rests_on || []).length)
+      n.appendChild(el('p', 'rests-f', 'The solver proved this of the model as drawn. '
+        + 'Read the sentence' + (f.rests_on.length > 1 ? 's' : '')
+        + ' above before treating it as a defect in the document.'));
+    // Link the finding to the actor it blames, so hovering lights the lane in
+    // the goal model below and clicking scrolls to it and pins the highlight.
+    const actors = new Set();
+    if (f.actor) actors.add(f.actor);
+    (f.causes || []).forEach(c => {
+      const hit = spec.actors.find(a => (a.label || a.type) === c.provider);
+      if (hit) actors.add(hit.type);
+    });
+    if (actors.size) {
+      n.classList.add('is-linked');
+      const ids = [...actors];
+      n.addEventListener('mouseenter', () => litActors(ids));
+      n.addEventListener('mouseleave', () => { if (!n.classList.contains('is-active')) litActors(null); });
+      n.addEventListener('click', () => {
+        const on = n.classList.contains('is-active');
+        document.querySelectorAll('.finding.is-active').forEach(x => x.classList.remove('is-active'));
+        if (on) { litActors(null); return; }
+        n.classList.add('is-active');
+        litActors(ids);
+        const t = document.getElementById('sec-model');
+        if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+    fs.appendChild(n);
+  });
+  proof.appendChild(fs);
+
+  /* ---- what the document never said ---- */
+  // On step 2 the proof leads and the remaining gaps follow it, so the same
+  // section is built here instead. See gapSection() above.
+  if (step === 2){
+    const g2 = gapSection();
+    if (g2) out.appendChild(g2);
+  }
+
+  /* ---- configuration matrix ---- */
+  // With the symbolic path there is no per-configuration table to draw, and the
+  // class cards carry the regions instead.
+  if (result.instances && result.instances.length)
+    techBody.appendChild(matrixSection(spec, result, order, lab, card,
+                                  sect('matrix', 'Every configuration',
+                                       result.stats.configurations, 'tech')));
+
+  /* ---- class cards ---- */
+  const cs = sect('classes', 'Behavior classes', result.stats.classes, 'tech');
+  cs.append(el('h2', null, 'Behavior classes'),
+    el('p','lede','Every configuration inside a class behaves identically, so these '
+      + result.stats.classes + ' scenarios cover all ' + result.stats.configurations
+      + ' configurations. That reduction is proved, not asserted.'));
+  const grid = el('div','classes');
+  result.classes.forEach(c => {
+    const n = el('div','cls'); n.style.setProperty('--cc', CC(c.class));
+    const blocked = c.pattern.map((p, i) => p === 'X' ? lab[order[i]] : null).filter(Boolean);
+    const title = blocked.length
+      ? blocked.slice(0, 2).join(' and ') + (blocked.length > 2 ? ' and more' : '')
+        + ' blocked'
+      : c.pattern.every(p => p === 'OK') ? 'Everything satisfied' : 'Partly staffed';
+    n.append(el('div','n','Class ' + c.class), el('h4', null, esc(title)));
+    const pat = el('div','pat');
+    c.pattern.forEach((p, i) => pat.appendChild(el('span',
+      'st ' + (p === 'OK' ? 'ok' : p === 'X' ? 'no' : ''),
+      (p === 'OK' ? '✓ ' : p === 'X' ? '✗ ' : '– ') + esc(lab[order[i]]))));
+    const count = c.configurations ?? c.members.length;
+    n.append(pat, el('div','m', count.toLocaleString() + ' configuration'
+      + (count === 1 ? '' : 's')));
+    if (c.regions && c.regions.length)
+      n.appendChild(el('div','region', c.regions.map(esc).join('<br>')));
+    grid.appendChild(n);
+  });
+  cs.appendChild(grid); techBody.appendChild(cs);
+
+  /* ---- goal model + statechart ---- */
+  techBody.appendChild(figureSection('The extracted goal model',
+    'Drafted from your text by AI. Review it before trusting its shape.',
+    goalSVG(spec, lab, card), sect('model', 'Goal model', undefined, 'tech'),
+    'goal-model'));
+  techBody.appendChild(figureSection('Behavioral model',
+    'How the system moves between classes as actors join and leave.',
+    stateSVG(result, lab, order), sect('state', 'Behavioral model', undefined, 'tech'),
+    'statechart'));
+
+  /* ---- traceability ---- */
+  const tr = sect('trace', 'Traceability', undefined, 'tech');
+  tr.append(el('h2', null, 'Traceability'),
+    el('p','lede','Where each part of the model came from in your text.'));
+  const tbl = el('table','data');
+  tbl.innerHTML = '<tr><th>Element</th><th>Requirement</th></tr>' +
+    spec.actors.map(a => '<tr><td><b>' + esc(lab[a.type]) + '</b> <span class="mono">'
+      + a.lo + '..' + a.hi + '</span></td><td>' + esc((trace.actors || {})[a.type] || '')
+      + '</td></tr>').join('') +
+    spec.deps.map(d => '<tr><td>' + esc(d.from) + ' → ' + esc(d.to)
+      + ' <span class="mono">' + esc(d.mult) + '</span></td><td>'
+      + esc((trace.deps || {})[d.from + ' -> ' + d.to] || '') + '</td></tr>').join('');
+  tr.appendChild(el('div','figure')).appendChild(tbl);
+  techBody.appendChild(tr);
+
+  /* ---- notes ---- */
+  if ((trace.notes || []).length){
+    const s = sect('notes', 'Extraction notes', trace.notes.length, 'tech');
+    const d = el('details');
+    d.innerHTML = '<summary>' + trace.notes.length
+      + ' things the extraction was unsure about</summary><ul>'
+      + trace.notes.map(n => '<li>' + esc(n) + '</li>').join('') + '</ul>';
+    s.appendChild(d); techBody.appendChild(s);
+  }
+
+  /* ---- actions ---- */
+  const act = el('div','actions');
+  const mk = (t, fn) => { const b = el('button','ghost',t); b.onclick = fn; return b; };
+  act.append(
+    mk('Open in GoalShift', () => {
+      /* Was: copy a loadFromSpec(...) line and tell the user to open devtools
+         and paste it. That was the roughest edge in either tool. The model now
+         travels in the URL hash, which GoalShift reads on load. The clipboard
+         is only the fallback for a payload too big for a URL. */
+      const payload = encodeURIComponent(JSON.stringify(spec));
+      const url = GOALSHIFT_URL + '#model=' + payload;
+      if (url.length < 60000) { window.open(url, '_blank', 'noopener'); return; }
+      navigator.clipboard.writeText(JSON.stringify(spec)).then(
+        () => toast('Model too large for a link. JSON copied, use Open .json in GoalShift.'),
+        () => toast('Model too large for a link, and the clipboard was refused.'));
+    }),
+    mk('Download model JSON', () => dl('model.spec.json',
+        JSON.stringify(spec, null, 1))),
+    mk('Download report', () => dl('report.md', j.markdown || '')),
+    mk('Save to out_ui/', () => fetch('/api/save', {method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({spec, trace, markdown: j.markdown})})
+        .then(r => r.json()).then(r => toast('Saved to ' + r.saved))));
+  out.appendChild(techBox);
+  out.appendChild(act);
+
+  SECS = SEC;
+  buildRail(visibleSections());
+  show('vOut');
+}
+
+/* ------------- step 2: the reader supplies what the document omits ------------- */
+/* The numbers come from the only party who actually has them. Nothing here calls
+   the AI. /api/reanalyze runs the same solver over the same model with the bounds
+   replaced, which is why this answers in milliseconds and the first pass took
+   minutes. Every earlier blow-up in the experiments came from a number the tool
+   invented; this is the path where it never has to. */
+async function applyAnswers(vals){
+  const j = LAST;
+  if (!j) return;
+  if (!j.spec0){            // keep the document's own model, to go back to
+    j.spec0 = JSON.parse(JSON.stringify(j.spec));
+    j.result0 = j.result; j.findings0 = j.findings;
+    j.summary0 = j.summary; j.markdown0 = j.markdown;
+  }
+  const spec = JSON.parse(JSON.stringify(j.spec0));
+  spec.actors.forEach(a => {
+    const v = vals[a.type];
+    if (!v) return;
+    a.lo = v.lo; a.hi = v.hi;
+    a.hi_stated = true;     // it is stated now, by the person who knows
+    a.hi_supplied = true;
+    // The minimum too. An absence the document never permitted marks the findings
+    // that rest on it as unconfirmed, and once the reader has answered it is no
+    // longer an assumption, so the mark has to come off with the answer.
+    a.lo_stated = true;
+    a.lo_supplied = true;
+    delete a.hi_unknown;
+  });
+  toast('Re-proving with your numbers');
+  let r;
+  try {
+    r = await (await fetch('/api/reanalyze', {method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({spec, trace: j.trace, engine: j.engine || 'sat',
+                            supplied: vals})})).json();
+  } catch (e) { return toast('Could not reach the server. ' + e.message); }
+  if (r.error || r.state === 'error')
+    return toast(r.error || (r.errors || ['That did not work']).join(' '));
+  LAST = Object.assign({}, j, {spec, result: r.result, findings: r.findings,
+    summary: r.summary, markdown: r.markdown || j.markdown, supplied: vals});
+  render(LAST);
+  toast('Proved from your numbers.');
+}
+
+function clearAnswers(){
+  const j = LAST;
+  if (!j || !j.spec0) return;
+  LAST = Object.assign({}, j, {spec: j.spec0, result: j.result0,
+    findings: j.findings0, summary: j.summary0, markdown: j.markdown0});
+  delete LAST.supplied;
+  render(LAST);   // j.draft carries the typed values back into the empty form
+}
+
+/* ---------------- sticky section rail + scroll-spy ---------------- */
+let SPY = null;
+/* Sections inside a closed fold are not on the page as far as the reader is
+   concerned, so the rail must not list them or the scroll-spy will chase
+   anchors nobody can see. The rail is rebuilt whenever a fold opens or shuts. */
+let SECS = [];
+function visibleSections(){
+  return SECS.filter(x => x.where === 'main' || (
+    document.querySelector('.techbox[data-host="' + x.where + '"]') || {}).open);
+}
+function refreshRail(){
+  resetShell();
+  buildRail(visibleSections());
+}
+function buildRail(sections){
+  const host = $('#railHost');
+  host.innerHTML = '';
+  // A rail with one or two entries is furniture, not navigation. On step 1 almost
+  // everything is folded away, so it stays off until there is something to navigate.
+  if (sections.length < 3) return;
+  const rail = el('nav', 'rx-rail');
+  rail.setAttribute('aria-label', 'Result sections');
+  rail.innerHTML = '<ol>' + sections.map(x =>
+    '<li><a href="#' + x.id + '" data-sec="' + x.id + '">' + esc(x.label) +
+    (x.count != null ? ' <span class="rx-count">' + x.count + '</span>' : '') +
+    '</a></li>').join('') + '</ol>';
+  const out = $('#vOut');
+  const shell = el('div', 'rx-shell');
+  out.parentNode.insertBefore(shell, out);
+  shell.appendChild(rail);
+  shell.appendChild(out);
+
+  const links = [...rail.querySelectorAll('a')];
+  links.forEach(a => a.onclick = e => {
+    e.preventDefault();
+    const t = document.getElementById(a.dataset.sec);
+    if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  if (SPY) SPY.disconnect();
+  // Track which section owns the top of the viewport. rootMargin pins the
+  // trigger line near the header rather than the viewport middle.
+  SPY = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (!en.isIntersecting) return;
+      links.forEach(a => a.classList.toggle('on', a.dataset.sec === en.target.id));
+    });
+  }, { rootMargin: '-80px 0px -70% 0px', threshold: 0 });
+  sections.forEach(x => {
+    const n = document.getElementById(x.id);
+    if (n) SPY.observe(n);
+  });
+  if (links[0]) links[0].classList.add('on');
+}
+
+function dl(name, text){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type:'text/plain'}));
+  a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/* Light one or more actor lanes in the goal-model SVG. null clears. */
+function litActors(ids){
+  const svg = document.querySelector('#sec-model svg');
+  if (!svg) return;
+  const lanes = [...svg.querySelectorAll('.gm-actor')];
+  if (!ids) { lanes.forEach(g => g.classList.remove('lit','dimmed')); return; }
+  lanes.forEach(g => {
+    const on = ids.indexOf(g.dataset.actor) >= 0;
+    g.classList.toggle('lit', on);
+    g.classList.toggle('dimmed', !on);
+  });
+}
+
+function figureSection(title, lede, svg, node, exportAs){
+  const s = node || el('section');
+  const head = el('div','fig-head');
+  head.append(el('h2', null, title));
+  if (exportAs){
+    const host = el('div');
+    head.appendChild(host);
+    Shift.figure.mountExport(host, {
+      diagram: exportAs, model: modelName, classes: classCount,
+      svg: () => svg
+    });
+  }
+  s.append(head, el('p','lede', lede));
+  const f = el('div','figure'); f.appendChild(svg); s.appendChild(f);
+  return s;
+}
+
+/* An off-screen host for figures that are not on the page.
+
+   The configuration matrix is an HTML table, so exporting it means drawing the
+   same grid in SVG. That SVG has to be laid out by the browser before it can be
+   measured or have its styles read, and a detached node has neither — getBBox()
+   throws on it and getComputedStyle() comes back empty. Parking it off to the
+   side renders it for real without showing it. `display:none` would not do:
+   that stops layout too. */
+function offscreenFigure(node){
+  let host = document.getElementById('figScratch');
+  if (!host){
+    host = el('div'); host.id = 'figScratch'; host.className = 'figure';
+    host.style.cssText = 'position:fixed;left:-10000px;top:0;width:2400px;'
+                       + 'pointer-events:none;opacity:0';
+    host.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(host);
+  }
+  host.innerHTML = '';
+  host.appendChild(node);
+  return node;
+}
+
+/* ------------------------------------------- configuration matrix ---- */
+function matrixSection(spec, result, order, lab, card, node){
+  const s = node || el('section');
+  s.append(el('h2', null, 'Every configuration'),
+    el('p','lede','One cell per configuration, coloured by the behavior class it '
+      + 'lands in. Cells where something present cannot meet its goal also carry a '
+      + 'diagonal hatch and a notched corner, so the encoding survives greyscale '
+      + 'and print.'));
+
+  const cls = {}; result.classes.forEach(c => cls[c.class] = c);
+  const ranged = order.map((a, i) => [a, i]).filter(([a]) => card[a][1] > card[a][0]);
+  const byKey = {}; result.instances.forEach(it => byKey[it.counts.join(',')] = it);
+  const wrap = el('div','matrix-wrap');
+  const t = el('table','matrix');
+
+  const pop = el('div', 'rx-pop');
+  pop.hidden = true;
+  s.appendChild(pop);
+
+  function showPop(cell, it){
+    const bad = cls[it.class].pattern.includes('X');
+    pop.innerHTML =
+      '<button class="rx-pop-close" aria-label="Close">' + Shift.icon('close') + '</button>' +
+      '<h4>' + esc(it.present) + '</h4>' +
+      '<div>Class ' + it.class + (bad ? ' &middot; something blocked' : ' &middot; all satisfied') + '</div>' +
+      '<dl>' + it.pattern.map((p, i) =>
+        '<dt>' + esc(lab[order[i]]) + '</dt><dd>' +
+        (p === 'OK' ? 'satisfied' : p === 'X' ? 'blocked' : 'absent') + '</dd>').join('') +
+      '</dl>';
+    pop.hidden = false;
+    const wrapRect = s.getBoundingClientRect();
+    const r = cell.getBoundingClientRect();
+    pop.style.left = Math.min(r.left - wrapRect.left + r.width + 10,
+                              s.clientWidth - pop.offsetWidth - 8) + 'px';
+    pop.style.top = (r.top - wrapRect.top) + 'px';
+    pop.querySelector('.rx-pop-close').onclick = clearPin;
+  }
+  function clearPin(){
+    pop.hidden = true;
+    s.querySelectorAll('.cell.pin').forEach(c => c.classList.remove('pin'));
+    s.querySelectorAll('.cell.dim').forEach(c => c.classList.remove('dim'));
+  }
+
+  function cross(on, cell){
+    s.querySelectorAll('td.cross, th.cross').forEach(x => x.classList.remove('cross'));
+    if (!on || !cell) return;
+    const td = cell.parentElement, tr = td.parentElement;
+    const idx = [...tr.children].indexOf(td);
+    [...tr.children].forEach((c, i) => { if (i === 0 || c === td) c.classList.add('cross'); });
+    [...tr.parentElement.children].forEach(row => {
+      const c = row.children[idx];
+      if (c) c.classList.add('cross');
+      if (row.children[0] && row === tr) row.children[0].classList.add('cross');
+    });
+    const head = tr.parentElement.children[0];
+    if (head && head.children[idx]) head.children[idx].classList.add('cross');
+  }
+
+  const cellFor = it => {
+    const bad = cls[it.class].pattern.includes('X');
+    // Failure carries a hatch and a notched corner as well as colour, so it
+    // survives greyscale and print. A 6px dot did not.
+    // The class number lives in its own span so print can put a plate behind it.
+    // As a bare text node there was nothing to style.
+    const c = el('div','cell ' + (bad ? 'bad' : 'ok'));
+    c.appendChild(el('span','num', String(it.class)));
+    // On screen the cell is painted with the class colour. In print it wears the
+    // matching CSS hatch class instead — same base greys, same geometry and same
+    // order as the SVG <pattern> the exported figure uses.
+    if (FIG()) c.classList.add('fig-p' + (((it.class - 1) % 8) + 1));
+    else c.style.background = CC(it.class);
+    c.setAttribute('role', 'button');
+    c.setAttribute('tabindex', '0');
+    c.setAttribute('aria-label', it.present + ', class ' + it.class +
+      (bad ? ', something blocked' : ', all satisfied'));
+    bindTip(c, '<b>' + esc(it.present) + '</b><br>Class ' + it.class + '<br>'
+      + it.pattern.map((p, i) => esc(lab[order[i]]) + ': '
+          + (p === 'OK' ? 'satisfied' : p === 'X' ? 'blocked' : 'absent')).join('<br>'));
+    c.addEventListener('mouseenter', () => cross(true, c));
+    c.addEventListener('mouseleave', () => cross(false));
+    const pin = () => {
+      const was = c.classList.contains('pin');
+      clearPin();
+      if (was) return;
+      s.querySelectorAll('.cell').forEach(x => x.classList.add('dim'));
+      c.classList.remove('dim');
+      c.classList.add('pin');
+      showPop(c, it);
+    };
+    c.addEventListener('click', pin);
+    c.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pin(); }
+    });
+    return c;
+  };
+
+  if (ranged.length === 2){
+    // Two ranged actors read naturally as a 2D grid: rows one, columns the other.
+    const [[ra, ri], [ca, ci]] = ranged;
+    const rows = [], cols = [];
+    for (let v = card[ra][0]; v <= card[ra][1]; v++) rows.push(v);
+    for (let v = card[ca][0]; v <= card[ca][1]; v++) cols.push(v);
+    const head = el('tr'); head.appendChild(el('th'));
+    cols.forEach(v => head.appendChild(el('th', null, String(v))));
+    t.appendChild(head);
+    rows.forEach(rv => {
+      const tr = el('tr');
+      tr.appendChild(el('th','rowh', String(rv)));
+      cols.forEach(cv => {
+        const counts = order.map((a, i) =>
+          i === ri ? rv : i === ci ? cv : card[a][0]);
+        const it = byKey[counts.join(',')];
+        const td = el('td');
+        if (it) td.appendChild(cellFor(it));
+        tr.appendChild(td);
+      });
+      t.appendChild(tr);
+    });
+    s.appendChild(el('div','axis','columns: number of ' + esc(lab[ca])
+      + '  ·  rows: number of ' + esc(lab[ra])));
+  } else {
+    // Otherwise a plain wrapped strip in configuration order.
+    let tr = el('tr'); let n = 0;
+    result.instances.forEach(it => {
+      if (n && n % 12 === 0){ t.appendChild(tr); tr = el('tr'); }
+      const td = el('td'); td.appendChild(cellFor(it)); tr.appendChild(td); n++;
+    });
+    t.appendChild(tr);
+  }
+  wrap.appendChild(t); s.appendChild(wrap);
+
+  const xh = el('div','fig-export-row');
+  Shift.figure.mountExport(xh, {
+    diagram: 'configuration-matrix', model: modelName, classes: classCount,
+    svg: () => offscreenFigure(matrixSVG(spec, result, order, lab, card))
+  });
+  s.appendChild(xh);
+
+  s.appendChild(el('p', 'hint', 'Hover a cell to line up its row and column. '
+    + 'Click to pin the detail. Blocked classes carry a hatch and a notched '
+    + 'corner as well as a colour, so the figure survives being printed.'));
+  const lg = el('div','legend');
+  result.classes.forEach(c => {
+    const i = el('div','it');
+    const sw = el('span','sw');
+    if (FIG()) sw.classList.add('fig-p' + (((c.class - 1) % 8) + 1));
+    else sw.style.background = CC(c.class);
+    i.append(sw, document.createTextNode('Class ' + c.class + ' · '
+      + c.members.length + ' config' + (c.members.length === 1 ? '' : 's')
+      + (c.pattern.includes('X') ? ' · something blocked' : '')));
+    lg.appendChild(i);
+  });
+  s.appendChild(lg);
+  return s;
+}
+
+/* ------------------------------------------------ the matrix as SVG ----
+   The on-screen matrix is an HTML table, which cannot be exported as vector
+   art. This redraws the same grid in SVG for export only. It is not shown; it
+   is built on demand, snapshotted and thrown away. Keeping it separate means
+   the interactive table keeps its hover, pinning and keyboard behaviour, none
+   of which belongs in a figure. */
+function matrixSVG(spec, result, order, lab, card){
+  const NS = 'http://www.w3.org/2000/svg';
+  const T = Shift.figure.tokens(), fig = FIG();
+  const FS = px => Shift.figure.fontSize(px);
+  const CELL = 34, GAP = 3, PADL = 46, PADT = 46;
+
+  const cls = {}; result.classes.forEach(c => cls[c.class] = c);
+  const ranged = order.map((a, i) => [a, i]).filter(([a]) => card[a][1] > card[a][0]);
+  const byKey = {}; result.instances.forEach(it => byKey[it.counts.join(',')] = it);
+
+  const svg = document.createElementNS(NS, 'svg');
+  const mk = (tag, at, txt) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in at) e.setAttribute(k, at[k]);
+    if (txt != null) e.textContent = txt;
+    svg.appendChild(e);
+    return e;
+  };
+  Shift.figure.ensureDefs(svg);
+  const FONT = fig ? {'font-family': T.font} : {};
+
+  const cell = (it, x, y) => {
+    const bad = cls[it.class].pattern.includes('X');
+    mk('rect', {x, y, width: CELL, height: CELL, rx: 3, fill: CC(it.class),
+                stroke: T.line2, 'stroke-width': 0.8});
+    if (bad){
+      // Blocked is a second channel, exactly as on screen: a notched corner,
+      // so it does not depend on knowing the class ramp by heart.
+      mk('path', {d: `M${x + CELL - 11},${y} L${x + CELL},${y} L${x + CELL},${y + 11} Z`,
+                  fill: T.ink});
+    }
+    // A plate under the number, because a digit on a hatch is unreadable.
+    mk('rect', {x: x + CELL / 2 - 8, y: y + CELL / 2 - 8, width: 16, height: 16, rx: 2,
+                fill: fig ? '#ffffff' : 'none',
+                stroke: fig ? T.ink : 'none', 'stroke-width': 0.6});
+    mk('text', {x: x + CELL / 2, y: y + CELL / 2 + 4.5, 'text-anchor': 'middle',
+                'font-size': FS(11.5), 'font-weight': 700,
+                fill: fig ? T.ink : Shift.figure.classInk(), ...FONT}, String(it.class));
+  };
+
+  let W, H, rowsN, colsN;
+  if (ranged.length === 2){
+    const [[ra, ri], [ca, ci]] = ranged;
+    const rows = [], cols = [];
+    for (let v = card[ra][0]; v <= card[ra][1]; v++) rows.push(v);
+    for (let v = card[ca][0]; v <= card[ca][1]; v++) cols.push(v);
+    rowsN = rows.length; colsN = cols.length;
+    W = PADL + colsN * (CELL + GAP) + 10;
+    H = PADT + rowsN * (CELL + GAP) + 46;
+    cols.forEach((cv, j) => mk('text', {x: PADL + j * (CELL + GAP) + CELL / 2, y: PADT - 10,
+      'text-anchor': 'middle', 'font-size': FS(11), fill: T.ink2, ...FONT}, String(cv)));
+    rows.forEach((rv, i) => mk('text', {x: PADL - 10, y: PADT + i * (CELL + GAP) + CELL / 2 + 4,
+      'text-anchor': 'end', 'font-size': FS(11), fill: T.ink2, ...FONT}, String(rv)));
+    rows.forEach((rv, i) => cols.forEach((cv, j) => {
+      const counts = order.map((a, k) => k === ri ? rv : k === ci ? cv : card[a][0]);
+      const it = byKey[counts.join(',')];
+      if (it) cell(it, PADL + j * (CELL + GAP), PADT + i * (CELL + GAP));
+    }));
+    mk('text', {x: PADL, y: 18, 'font-size': FS(11.5), 'font-weight': 700,
+                fill: T.ink, ...FONT},
+       'columns: ' + lab[ca] + '  ·  rows: ' + lab[ra]);
+  } else {
+    const per = 12;
+    colsN = Math.min(per, result.instances.length);
+    rowsN = Math.ceil(result.instances.length / per);
+    W = 10 + colsN * (CELL + GAP) + 10;
+    H = 20 + rowsN * (CELL + GAP) + 46;
+    result.instances.forEach((it, n) =>
+      cell(it, 10 + (n % per) * (CELL + GAP), 20 + Math.floor(n / per) * (CELL + GAP)));
+  }
+
+  // The legend is not optional in print: without it a hatch means nothing.
+  let ly = H - 32, lx = ranged.length === 2 ? PADL : 10;
+  result.classes.forEach(c => {
+    const wTxt = 'Class ' + c.class + (c.pattern.includes('X') ? ' (blocked)' : '');
+    const tw = fig ? Shift.figure.textWidth(wTxt, FS(10.5)) : wTxt.length * 5.6;
+    if (lx + 16 + tw + 18 > W){ lx = ranged.length === 2 ? PADL : 10; ly += 18; H += 18; }
+    mk('rect', {x: lx, y: ly, width: 13, height: 13, rx: 2, fill: CC(c.class),
+                stroke: T.line2, 'stroke-width': 0.7});
+    mk('text', {x: lx + 18, y: ly + 10.5, 'font-size': FS(10.5), fill: T.ink2, ...FONT}, wTxt);
+    lx += 16 + tw + 18;
+  });
+
+  svg.setAttribute('viewBox', `0 0 ${W} ${H + 8}`);
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H + 8);
+  return svg;
+}
+
+/* --------------------------------------------------- goal model SVG -- */
+function goalSVG(spec, lab, card){
+  const NS = 'http://www.w3.org/2000/svg';
+  // One palette call instead of five token reads. Screen mode returns exactly
+  // the same values as before; Figure Mode returns the print set.
+  const T = Shift.figure.tokens(), fig = FIG();
+  const FS = px => Shift.figure.fontSize(px);
+  const ink = T.ink, ink2 = T.ink2, ink3 = T.ink3, line = T.line2, surf = T.surface2;
+
+  const owner = {}, kids = {}, op = {};
+  spec.goals.forEach(g => owner[g.name] = g.owner);
+  spec.decomp.forEach(d => { kids[d.parent] = d.children.slice(); op[d.parent] = d.op; });
+  const glab = {}; spec.goals.forEach(g => glab[g.name] = g.label || g.name);
+
+  const NW = 132, NH = 42, HG = 16, VG = 54, PAD = 18, LANE = 26;
+  const pos = {}, lanes = [];
+  let x0 = 0;
+
+  spec.actors.forEach(a => {
+    const root = spec.roots[a.type];
+    let leaf = 0;
+    const place = (n, depth) => {
+      const cs = (kids[n] || []).filter(c => owner[c] === a.type);
+      if (!cs.length){ const x = leaf * (NW + HG); leaf++;
+        pos[n] = {x, y: depth * (NH + VG)}; return x; }
+      const xs = cs.map(c => place(c, depth + 1));
+      const x = (Math.min(...xs) + Math.max(...xs)) / 2;
+      pos[n] = {x, y: depth * (NH + VG)}; return x;
+    };
+    if (root && owner[root] === a.type) place(root, 0);
+    spec.goals.filter(g => g.owner === a.type && !(g.name in pos))
+      .forEach(g => { pos[g.name] = {x: leaf * (NW + HG), y: 0}; leaf++; });
+    const mine = spec.goals.filter(g => g.owner === a.type).map(g => g.name);
+    const xs = mine.map(n => pos[n].x), ys = mine.map(n => pos[n].y);
+    const w = (Math.max(...xs) - Math.min(...xs)) + NW + PAD * 2;
+    const h = (Math.max(...ys) - Math.min(...ys)) + NH + PAD * 2 + LANE;
+    const dx = x0 + PAD - Math.min(...xs), dy = LANE + PAD;
+    mine.forEach(n => { pos[n] = {x: pos[n].x + dx, y: pos[n].y + dy}; });
+    lanes.push({a, x: x0, w, h});
+    x0 += w + 34;
+  });
+
+  const H = Math.max(...lanes.map(l => l.h)) + 30;
+  const W = x0;
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', Math.min(W, 1060));
+  svg.style.minWidth = Math.min(W, 700) + 'px';
+  const mk = (t, at) => { const n = document.createElementNS(NS, t);
+    for (const k in at) n.setAttribute(k, at[k]); return n; };
+
+  const defs = mk('defs');
+  defs.innerHTML = `<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5"
+      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="${fig ? T.ink : ink3}"/></marker>`;
+  svg.appendChild(defs);
+
+  // actor lanes, each in its own group so a finding can light it
+  lanes.forEach(({a, x, w, h}, i) => {
+    // Decoration, not data: in print it becomes a plain rule rather than a
+    // hue, so it cannot be mistaken for a behavior class.
+    const hue = fig ? T.ink : Shift.classColor(i + 1);
+    const g = mk('g', {class: 'gm-actor'});
+    g.dataset.actor = a.type;
+    svg.appendChild(g);
+    g.appendChild(mk('rect', {x, y: 12, width: w, height: h, rx: 16,
+      class: 'gm-lane', fill: surf, stroke: line, 'stroke-width': 1}));
+    g.appendChild(mk('rect', {x, y: 12, width: w, height: 3, rx: 2,
+      class: 'gm-head', fill: hue}));
+    const t = mk('text', {x: x + 14, y: 34, fill: ink, 'font-size': FS(13),
+      'font-weight': 700});
+    t.textContent = lab[a.type];
+    g.appendChild(t);
+    const c = mk('text', {x: x + w - 14, y: 34, fill: ink3, 'font-size': FS(12),
+      'text-anchor': 'end'});
+    c.textContent = card[a.type][0] + '..' + card[a.type][1];
+    g.appendChild(c);
+  });
+
+  // decomposition edges
+  spec.decomp.forEach(d => {
+    const p = pos[d.parent]; if (!p) return;
+    d.children.forEach(c => {
+      const q = pos[c]; if (!q) return;
+      const x1 = p.x + NW / 2, y1 = p.y + NH, x2 = q.x + NW / 2, y2 = q.y;
+      const my = (y1 + y2) / 2;
+      svg.appendChild(mk('path', {d: `M${x1} ${y1} C${x1} ${my} ${x2} ${my} ${x2} ${y2}`,
+        fill: 'none', stroke: line, 'stroke-width': 1.6}));
+    });
+    const t = mk('text', {x: pos[d.parent].x + NW / 2, y: pos[d.parent].y + NH + 17,
+      fill: ink3, 'font-size': FS(10.5), 'font-weight': 700, 'text-anchor': 'middle',
+      'letter-spacing': '.06em'});
+    t.textContent = d.op;
+    const bg = mk('rect', {x: pos[d.parent].x + NW / 2 - 17,
+      y: pos[d.parent].y + NH + 7, width: 34, height: 14, rx: 7, fill: surf});
+    svg.append(bg, t);
+  });
+
+  // dependency edges, drawn over the lanes
+  spec.deps.forEach(d => {
+    const p = pos[d.from], q = pos[d.to]; if (!p || !q) return;
+    const x1 = p.x + NW, y1 = p.y + NH / 2, x2 = q.x, y2 = q.y + NH / 2;
+    const mx = (x1 + x2) / 2;
+    svg.appendChild(mk('path', {d: `M${x1} ${y1} C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`,
+      fill: 'none', stroke: ink3, 'stroke-width': 1.5, 'stroke-dasharray': '5 4',
+      'marker-end': 'url(#ah)', opacity: .85}));
+    const bg = mk('rect', {x: mx - 17, y: (y1 + y2) / 2 - 9, width: 34, height: 16,
+      rx: 8, fill: surf, stroke: line});
+    const t = mk('text', {x: mx, y: (y1 + y2) / 2 + 3, fill: ink2, 'font-size': FS(10),
+      'text-anchor': 'middle', 'font-family': 'ui-monospace,monospace'});
+    t.textContent = d.mult;
+    svg.append(bg, t);
+  });
+
+  // goal nodes
+  spec.goals.forEach(g => {
+    const p = pos[g.name]; if (!p) return;
+    const isRoot = spec.roots[g.owner] === g.name;
+    const gi = spec.actors.findIndex(a => a.type === g.owner);
+    /* This was `var(--c1)`..`var(--c4)`, tokens that stopped existing when the
+       tools moved onto the shared design system. An unresolvable var() in a
+       presentation attribute is invalid at computed-value time, so `stroke`
+       silently fell back to none: every ROOT goal — the most important node in
+       the diagram — has been drawing with no border at all. Root-ness is not a
+       behavior class, so print marks it with weight rather than a ramp step. */
+    const hue = fig ? T.ink : Shift.classColor(gi + 1);
+    svg.appendChild(mk('rect', {x: p.x, y: p.y, width: NW, height: NH,
+      rx: g.kind === 'task' ? 19 : 9,
+      fill: fig ? T.surface : 'var(--surface)', stroke: isRoot ? hue : line,
+      'stroke-width': isRoot ? 2 : 1.2}));
+    if (isRoot) svg.appendChild(mk('circle', {cx: p.x + 9, cy: p.y + 9, r: 3.2,
+      fill: hue}));
+    const words = (glab[g.name] || g.name).split(/\s+/);
+    const lines = []; let cur = '';
+    words.forEach(w => { const t = cur ? cur + ' ' + w : w;
+      if (t.length > 19){ if (cur) lines.push(cur); cur = w; } else cur = t; });
+    if (cur) lines.push(cur);
+    const show = lines.slice(0, 2);
+    if (lines.length > 2) show[1] = show[1].slice(0, 16) + '…';
+    show.forEach((ln, i) => {
+      const t = mk('text', {x: p.x + NW / 2, y: p.y + NH / 2 + 4
+        - (show.length - 1) * 6.5 + i * 13, fill: ink, 'font-size': FS(10.8),
+        'text-anchor': 'middle'});
+      t.textContent = ln; svg.appendChild(t);
+    });
+  });
+  return svg;
+}
+
+/* ---------------------------------------------------- statechart SVG - */
+function stateSVG(result, lab, order){
+  const NS = 'http://www.w3.org/2000/svg';
+  const T = Shift.figure.tokens(), fig = FIG();
+  const FS = px => Shift.figure.fontSize(px);
+  const ink = T.ink, ink3 = T.ink3, line = T.line2, surf = T.surface2;
+
+  const states = result.statechart.states;
+  const n = states.length;
+  // The circle has to hold the state boxes AND their transition labels. Sizing
+  // it from the state count alone put four 108-wide boxes on a 120 radius, and
+  // the labels had nowhere to go.
+  const widest = result.statechart.edges.reduce((m, e) => Math.max(m, e[1].length), 0) * 6 + 12;
+  const R = Math.max(120, n * 30, (108 + widest) / 2 + 24), CX = R + 130, CY = R + 60;
+  const W = CX + R + 130, H = CY + R + 60;
+  const at = {};
+  states.forEach((s, i) => {
+    const a = -Math.PI / 2 + i * 2 * Math.PI / n;
+    at[s] = {x: CX + R * Math.cos(a), y: CY + R * Math.sin(a)};
+  });
+
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', Math.min(W, 1060));
+  const mk = (t, at2) => { const e = document.createElementNS(NS, t);
+    for (const k in at2) e.setAttribute(k, at2[k]); return e; };
+  const defs = mk('defs');
+  defs.innerHTML = `<marker id="sa" viewBox="0 0 10 10" refX="9" refY="5"
+    markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M0 0 L10 5 L0 10 z" fill="${ink3}"/></marker>`;
+  svg.appendChild(defs);
+
+  const RW = 108, RH = 46;
+
+  /* Edges are drawn in two passes so the labels can be separated first.
+
+     Every edge midpoint in a radial layout points at the centre of the circle,
+     so all eight transition labels landed on the same spot. Anchoring each one
+     a quarter of the way along its own curve fixes most of it, and also reads
+     better — the label sits beside the state you are LEAVING. The rest is a
+     greedy separation pass: walk the labels in order and slide any that still
+     overlap one already placed along the edge normal, up to a cap, so a label
+     never wanders far enough from its edge to belong to a different one. */
+  const labels = [];
+  result.statechart.edges.forEach(([a, l, b]) => {
+    const p = at[a], q = at[b]; if (!p || !q) return;
+    const dx = q.x - p.x, dy = q.y - p.y, len = Math.hypot(dx, dy) || 1;
+    const off = 34;
+    const sx = p.x + dx / len * off, sy = p.y + dy / len * off;
+    const ex = q.x - dx / len * off, ey = q.y - dy / len * off;
+    // bow each edge slightly so the two directions between a pair stay apart
+    const bow = 26, nx = -dy / len * bow, ny = dx / len * bow;
+    const mx = (sx + ex) / 2 + nx, my = (sy + ey) / 2 + ny;
+    svg.appendChild(mk('path', {d: `M${sx} ${sy} Q${mx} ${my} ${ex} ${ey}`,
+      fill: 'none', stroke: line, 'stroke-width': 1.5, 'marker-end': 'url(#sa)'}));
+
+    const t0 = 0.27, u = 1 - t0;
+    const bx0 = u * u * sx + 2 * u * t0 * mx + t0 * t0 * ex;
+    const by0 = u * u * sy + 2 * u * t0 * my + t0 * t0 * ey;
+    // Screen keeps the character-count guess, which suits the sans face it was
+    // tuned for; print measures the string in the actual figure font.
+    const w = (fig ? Shift.figure.textWidth(l, FS(10)) : l.length * 5.4) + 12;
+    labels.push({ l, w, h: 17, x: bx0 + nx * 0.35, y: by0 + ny * 0.35,
+                  ux: nx / bow, uy: ny / bow });
+  });
+
+  /* The state boxes are obstacles too, not just the other labels: without them
+     a label happily settles half on top of a state. They are seeded as fixed
+     occupants before any label is placed. */
+  const placed = states.map(st => ({ x: at[st].x, y: at[st].y, w: RW, h: RH }));
+  const hits = (c, o) => Math.abs(c.x - o.x) < (c.w + o.w) / 2 + 3
+                      && Math.abs(c.y - o.y) < (c.h + o.h) / 2 + 3;
+  labels.forEach(c => {
+    /* Spiral outward from the anchor until the label fits.
+
+       Sliding along the edge normal alone is not enough: the two transitions
+       between a pair of side-by-side states have a vertical normal and a label
+       wider than the gap between the boxes, so no amount of vertical movement
+       clears them. Searching rings of directions finds the gap that exists.
+       The radius is capped so a label can never drift far enough to look like
+       it belongs to a different edge; if nothing fits inside the cap the label
+       stays at its anchor, which is no worse than before. */
+    const x0 = c.x, y0 = c.y, MAXDRIFT = 46;
+    if (placed.some(o => hits(c, o))) {
+      let best = null;
+      for (let r = 6; r <= MAXDRIFT && !best; r += 6) {
+        for (let a = 0; a < 12; a++) {
+          // start along the edge normal, which is usually the shortest way out
+          const th = Math.atan2(c.uy, c.ux) + (a % 2 ? 1 : -1) * Math.ceil(a / 2) * Math.PI / 6;
+          const cand = { x: x0 + Math.cos(th) * r, y: y0 + Math.sin(th) * r,
+                         w: c.w, h: c.h };
+          if (!placed.some(o => hits(cand, o))) { best = cand; break; }
+        }
+      }
+      if (best) { c.x = best.x; c.y = best.y; }
+    }
+    placed.push(c);
+    svg.appendChild(mk('rect', {x: c.x - c.w / 2, y: c.y - 9, width: c.w, height: 17,
+      rx: 8, fill: fig ? '#ffffff' : surf,
+      stroke: fig ? T.ink : 'none', 'stroke-width': fig ? 0.6 : 0}));
+    const t = mk('text', {x: c.x, y: c.y + 3.5, fill: fig ? T.ink : ink3,
+      'font-size': FS(10), 'text-anchor': 'middle'});
+    t.textContent = c.l; svg.appendChild(t);
+  });
+
+  states.forEach(s => {
+    const p = at[s], pat = result.statechart.patterns[s] || [];
+    const initial = result.statechart.initial === s;
+    // On screen the class rides on the border colour and the box stays plain.
+    // In print the class becomes the FILL pattern, which is the same encoding
+    // the configuration matrix uses, so the two figures read as one system. A
+    // pattern makes a hopeless stroke, so the border turns plain black.
+    svg.appendChild(mk('rect', {x: p.x - RW / 2, y: p.y - RH / 2, width: RW,
+      height: RH, rx: 13, fill: fig ? CC(s) : 'var(--surface)',
+      stroke: fig ? T.ink : CC(s), 'stroke-width': 2}));
+    if (initial) svg.appendChild(mk('rect', {x: p.x - RW / 2 - 5, y: p.y - RH / 2 - 5,
+      width: RW + 10, height: RH + 10, rx: 17, fill: 'none',
+      stroke: fig ? T.ink : CC(s), 'stroke-width': 1, opacity: fig ? 1 : .4}));
+    if (fig) svg.appendChild(mk('rect', {x: p.x - RW / 2 + 8, y: p.y - RH / 2 + 6,
+      width: RW - 16, height: RH - 12, rx: 3, fill: '#ffffff',
+      stroke: T.ink, 'stroke-width': 0.6}));
+    const t = mk('text', {x: p.x, y: p.y - 3, fill: ink, 'font-size': FS(12),
+      'font-weight': 700, 'text-anchor': 'middle'});
+    t.textContent = 'Class ' + s; svg.appendChild(t);
+    const g = mk('text', {x: p.x, y: p.y + 13, 'font-size': FS(11),
+      'text-anchor': 'middle', fill: fig ? ink : ink3});
+    // Tick and cross are glyphs no PDF base-14 encoding carries, and the
+    // document font may not either.
+    g.textContent = pat.map(v => v === 'OK' ? (fig ? 'OK' : '✓')
+                                : v === 'X' ? (fig ? 'X' : '✗') : '–').join(fig ? ' ' : ' ');
+    svg.appendChild(g);
+  });
+  return svg;
+}
+
+/* ------------------------------------------- very small markdown ----- */
+function mdLite(md){
+  const lines = md.split('\n'); let html = '', inList = false, inTable = false;
+  // `*..*` is a dependency multiplicity, not emphasis. Park it before the emphasis
+  // pass or `(*..*)` renders as `(..)`, which silently loses the harder of the two
+  // multiplicity kinds.
+  const STAR = ' STAR ';
+  const inline = s => esc(s)
+    .replace(/\\([*_`\\])/g, '$1')          // undo Markdown escaping, so 1..* reads right
+    .replace(/\*\.\.\*/g, STAR)
+    .replace(/`([^`]+)`/g, '<span class="mono">$1</span>')
+    .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+    .replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>')
+    .split(STAR).join('*..*');
+  const closeList = () => { if (inList){ html += '</ul>'; inList = false; } };
+  const closeTable = () => { if (inTable){ html += '</table>'; inTable = false; } };
+  for (let raw of lines){
+    const l = raw.trim();
+    if (!l){ closeList(); closeTable(); continue; }
+    const h = l.match(/^(#{1,6})\s+(.*)$/);
+    if (h){ closeList(); closeTable();
+      const lv = Math.min(6, h[1].length + 2);
+      html += `<h${lv} style="margin:16px 0 6px">${inline(h[2])}</h${lv}>`; continue; }
+    if (/^\|/.test(l)){
+      if (/^\|[\s:|-]+\|$/.test(l)) continue;
+      const cells = l.split('|').slice(1, -1);
+      if (!inTable){ html += '<table class="data">'; inTable = true;
+        html += '<tr>' + cells.map(c => '<th>' + inline(c.trim()) + '</th>').join('') + '</tr>';
+        continue; }
+      html += '<tr>' + cells.map(c => '<td>' + inline(c.trim()) + '</td>').join('') + '</tr>';
+      continue;
+    }
+    closeTable();
+    if (/^[-*]\s+/.test(l)){ if (!inList){ html += '<ul>'; inList = true; }
+      html += '<li>' + inline(l.replace(/^[-*]\s+/, '')) + '</li>'; continue; }
+    closeList();
+    html += '<p style="margin:9px 0">' + inline(l) + '</p>';
+  }
+  closeList(); closeTable();
+  return html;
+}
+</script>
+</body>
+</html>
