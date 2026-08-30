@@ -89,7 +89,14 @@ def main(argv=None):
         p.error("give a requirements file, or --spec to re-analyse an existing model")
 
     os.makedirs(args.outdir, exist_ok=True)
-    name = "spec" if args.spec else os.path.basename(args.input)
+    # A report titled "spec" tells the reader nothing about which document it came
+    # from. When re-analysing a saved model the run directory is the useful name,
+    # since that is what the earlier run was called.
+    if args.spec:
+        _d = os.path.basename(os.path.dirname(os.path.abspath(args.spec)))
+        name = _d or os.path.basename(args.spec)
+    else:
+        name = os.path.basename(args.input)
     screen = None
 
     # ---- 1. get a model -----------------------------------------------------
@@ -319,8 +326,12 @@ def main(argv=None):
                     _write(spec_path, json.dumps(spec, indent=1))
                     for parent, was, now, why in dfixed:
                         print(f"    corrected {parent}: {was} -> {now}")
-                    for kind, name, verdict, why in dflagged:
-                        print(f"    FLAGGED {kind} {name}: {verdict}. {why or ''}")
+                    # `what`, not `name`: a Python for-loop leaks its variable into
+                    # the enclosing scope, and this one used to clobber the document
+                    # name set at the top of the run. Every report written afterwards
+                    # was titled after a flagged breakdown instead of the document.
+                    for kind, what, verdict, why in dflagged:
+                        print(f"    FLAGGED {kind} {what}: {verdict}. {why or ''}")
                         print(f"      left in the model on purpose, because removing it "
                               f"would hide defects rather than reveal them")
                     if dflagged:
