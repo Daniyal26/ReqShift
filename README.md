@@ -430,3 +430,11 @@ findable**. All three pass at 100%.
 
 A scanned PDF holds pictures of words rather than words, and is refused with that
 explanation rather than an empty result. There is no OCR.
+
+## License
+
+Proprietary, all rights reserved. See [LICENSE](LICENSE). Receiving a copy for
+evaluation or review does not grant a right to use it beyond reading.
+
+GoalShift, which this project imports and never modifies, is a separate work under
+the MIT License: https://github.com/Daniyal26/GoalShift
