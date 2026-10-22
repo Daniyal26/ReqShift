@@ -390,6 +390,9 @@ class Handler(BaseHTTPRequestHandler):
         u = urlparse(self.path)
         q = parse_qs(u.query)
         if u.path in ("/", "/index.html"):
+            return self._file(os.path.join(HERE, "ui", "landing.html"),
+                              "text/html; charset=utf-8")
+        if u.path in ("/app", "/app/", "/app/index.html"):
             return self._file(os.path.join(HERE, "ui", "index.html"),
                               "text/html; charset=utf-8")
         if u.path in ("/reqshift.css", "/components.js"):
