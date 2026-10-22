@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7f4">
+  <title>ReqShift — Check system configurations before integration</title>
+  <meta name="description" content="ReqShift turns engineering requirements into traceable models and checks the configurations those requirements allow.">
+  <style>
+    :root{color-scheme:light;--paper:#f5f7f4;--white:#fff;--ink:#17241c;--muted:#657169;--line:#e2e8e1;--green:#20613d;--green-dark:#153e29;--green-soft:#eaf1e9;--lime:#c4d890;--max:1160px}
+    *,*:before,*:after{box-sizing:border-box}
+    html{scroll-behavior:smooth;scroll-padding-top:84px}
+    body{margin:0;background:var(--white);color:var(--ink);font-family:Inter,"Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+    a{color:inherit}
+    .wrap{width:min(var(--max),calc(100% - 56px));margin-inline:auto}
+    .topbar{height:76px;display:flex;align-items:center;background:rgba(255,255,255,.96);border-bottom:1px solid var(--line)}
+    .nav{display:flex;align-items:center;justify-content:space-between;gap:28px}
+    .brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+    .brand-mark{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:var(--green-dark);color:#fff;font-family:Georgia,serif;font-size:19px}
+    .brand-name{font-size:18px;font-weight:650;letter-spacing:-.055em;color:var(--ink)}
+    .brand-name span{color:#66816a}
+    .brand-name small{display:block;margin-top:4px;font-size:8px;font-weight:500;letter-spacing:.11em;color:#78847b}
+    .nav-links{display:flex;align-items:center;gap:32px}
+    .nav-links a{font-size:12px;text-decoration:none;color:#626d65}
+    .nav-links a:hover{color:var(--green)}
+    .nav-cta,.button{display:inline-flex;align-items:center;justify-content:center;gap:9px;border-radius:4px;text-decoration:none;font-size:12px;font-weight:600;transition:background .18s,color .18s,border-color .18s}
+    .nav-cta{padding:11px 15px;border:1px solid #d7e0d7;color:#34513a;background:#fff}
+    .nav-cta:hover{background:var(--green-soft);border-color:#c6d4c6}
+    .hero{background:var(--paper);padding:86px 0 78px}
+    .hero-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(420px,.94fr);align-items:center;gap:78px}
+    .eyebrow{display:flex;align-items:center;gap:9px;font-size:9px;font-weight:600;letter-spacing:.1em;color:#718074}
+    .eyebrow:before{content:"";width:6px;height:6px;border-radius:50%;background:#769276}
+    h1,h2,h3,p{margin-top:0}
+    h1{max-width:620px;margin:24px 0 18px;font-size:clamp(48px,5.4vw,70px);font-weight:520;line-height:1.01;letter-spacing:-.072em;color:#1b2c20}
+    .hero-copy{max-width:465px;font-size:14px;line-height:1.85;color:var(--muted)}
+    .hero-actions{display:flex;flex-wrap:wrap;align-items:center;gap:13px;margin-top:28px}
+    .button{padding:13px 17px;background:var(--green);color:white}
+    .button:hover{background:#174c2e}
+    .button.secondary{background:transparent;border:1px solid #d6dfd5;color:#3b5540}
+    .button.secondary:hover{background:#fff}
+    .hero-note{display:flex;align-items:center;gap:10px;margin-top:30px;padding-top:16px;border-top:1px solid #dfe5dd;font-size:10px;color:#66736a}
+    .hero-note b{font-weight:600;color:#3c5340}
+    .hero-note-mark{width:17px;height:17px;display:grid;place-items:center;border-radius:50%;background:#e5ede2;color:#426b49;font-size:11px}
+    .example{padding:25px 27px 22px;border:1px solid #e3e9e2;border-radius:6px;background:white;box-shadow:0 18px 44px rgba(30,54,35,.06)}
+    .example-head{display:flex;justify-content:space-between;gap:16px;color:#7b877c;font-size:8px;font-weight:600;letter-spacing:.09em}
+    .example-sentence{max-width:490px;margin:22px 0;font-size:18px;line-height:1.5;letter-spacing:-.025em;color:#344538}
+    .example-sentence em{font-style:normal;color:#5a795d}
+    .rule{height:1px;background:#e9ede7}
+    .model{display:grid;grid-template-columns:1fr 74px 1fr;align-items:center;gap:12px;padding:24px 0}
+    .model-part{padding:14px 15px;border:1px solid #e7ece5;border-radius:4px;background:#f8f9f6}
+    .model-count{width:30px;height:30px;display:grid;place-items:center;margin-bottom:10px;border-radius:50%;background:#e7eee3;color:#4f704f;font:11px ui-monospace,monospace}
+    .model-part strong{display:block;font-size:11px;font-weight:600;color:#35483a}
+    .model-part small{display:block;margin-top:5px;font-size:9px;color:#808b81}
+    .model-link{position:relative;height:1px;background:#c0cbbb;text-align:center}
+    .model-link:after{content:"";position:absolute;right:0;top:-3px;width:6px;height:6px;border-top:1px solid #8fa18b;border-right:1px solid #8fa18b;transform:rotate(45deg)}
+    .model-link span{position:relative;top:-17px;padding:0 5px;background:#fff;font-size:8px;color:#879286}
+    .question{display:grid;grid-template-columns:110px 1fr 16px;align-items:center;gap:12px;padding:13px 14px;border-radius:4px;background:#f1f4ee;color:#435743}
+    .question span{font-size:8px;font-weight:600;letter-spacing:.07em;color:#73836e}
+    .question strong{font-size:10px;font-weight:500;line-height:1.5}
+    .question svg{color:#718871}
+    .proof-row{border-bottom:1px solid var(--line);background:#fff}
+    .proof-items{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:21px 0}
+    .proof-item{display:flex;align-items:center;gap:9px;font-size:10px;color:#626f64}
+    .proof-item i{width:17px;height:17px;display:grid;place-items:center;border-radius:50%;background:#edf2ea;color:#4d7550;font-size:10px;font-style:normal}
+    .section{padding:88px 0}
+    .problem{display:grid;grid-template-columns:1fr .78fr;align-items:center;gap:90px}
+    .kicker{font-size:9px;font-weight:600;letter-spacing:.1em;color:#758372}
+    h2{margin:14px 0 0;font-size:clamp(34px,4vw,48px);font-weight:520;line-height:1.08;letter-spacing:-.06em;color:#24352a}
+    .problem p{max-width:420px;margin:0;font-size:13px;line-height:1.9;color:#6b766c}
+    .process{background:var(--paper)}
+    .section-head{max-width:660px;margin:0 auto 43px;text-align:center}
+    .section-head h2{font-size:clamp(32px,3.6vw,42px)}
+    .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:42px}
+    .step{padding-top:19px;border-top:1px solid #d9e1d8}
+    .step-num{display:block;margin-bottom:22px;font:10px ui-monospace,monospace;color:#80907f}
+    .step h3{margin-bottom:8px;font-size:15px;font-weight:600;color:#334538}
+    .step p{max-width:260px;margin:0;font-size:11px;line-height:1.8;color:#768076}
+    .engine{padding:73px 0;background:var(--green-dark);color:#e9efe7}
+    .engine-grid{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:70px}
+    .engine .kicker{color:#afc4a9}
+    .engine h2{max-width:510px;color:#f0f3ed;font-size:clamp(32px,3.7vw,43px)}
+    .engine p{max-width:470px;margin:17px 0 0;font-size:12px;line-height:1.85;color:#bdc9bd}
+    .engine-flow{display:grid;grid-template-columns:1fr 32px 1fr;align-items:center;gap:13px}
+    .engine-card{min-height:115px;padding:17px;border:1px solid rgba(230,241,226,.16);border-radius:4px;background:rgba(255,255,255,.045)}
+    .engine-card small{display:block;margin-bottom:17px;font-size:8px;letter-spacing:.08em;color:#bdcbb9}
+    .engine-card strong{font-size:12px;font-weight:550;color:#f0f3ed}
+    .engine-arrow{text-align:center;color:var(--lime)}
+    .status{padding:29px 0;background:#f4f6f1}
+    .status-row{display:grid;grid-template-columns:170px 1fr auto;align-items:center;gap:28px}
+    .status-label{font-size:8px;font-weight:600;letter-spacing:.08em;color:#758472}
+    .status-row p{margin:0;font-size:11px;line-height:1.65;color:#6f796f}
+    .status-row a{display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:600;color:#456849;text-decoration:none;white-space:nowrap}
+    .footer{padding:25px 0;background:white}
+    .footer-row{display:flex;align-items:center;justify-content:space-between;gap:20px;color:#899188;font-size:9px}
+    .footer-brand{color:#455547;font-weight:600}
+    :focus-visible{outline:3px solid #8ea778;outline-offset:3px;border-radius:3px}
+    @media(max-width:900px){.hero-grid{grid-template-columns:1fr 1fr;gap:38px}.problem{gap:50px}.engine-grid{gap:42px}}
+    @media(max-width:680px){.wrap{width:min(var(--max),calc(100% - 40px))}.topbar{height:66px}.nav-links{display:none}.hero{padding:58px 0 48px}.hero-grid{grid-template-columns:1fr;gap:34px}h1{font-size:clamp(45px,12vw,60px)}.example{padding:21px 18px}.example-sentence{font-size:16px}.model{grid-template-columns:1fr;gap:10px;padding:18px 0}.model-part{display:grid;grid-template-columns:34px 1fr;align-items:center;column-gap:10px;padding:10px 12px}.model-count{grid-row:span 2;margin:0}.model-part small{margin-top:3px}.model-link{display:none}.question{grid-template-columns:1fr 16px;gap:6px 10px}.question span{grid-column:1/-1}.proof-items{justify-content:flex-start;flex-wrap:wrap;gap:13px 24px}.section{padding:60px 0}.problem,.engine-grid{grid-template-columns:1fr;gap:21px}.section-head{margin-bottom:29px}.steps{grid-template-columns:1fr;gap:22px}.step{padding-top:14px}.step-num{margin-bottom:12px}.step p{max-width:none}.engine{padding:58px 0}.engine-flow{grid-template-columns:1fr 20px 1fr;gap:8px}.engine-card{min-height:100px;padding:13px}.engine-card strong{font-size:10px}.status-row{grid-template-columns:1fr;gap:10px}.footer-row{flex-wrap:wrap}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition:none!important}}
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <nav class="nav wrap" aria-label="Main navigation">
+      <a class="brand" href="#top" aria-label="ReqShift home"><span class="brand-mark">R</span><span class="brand-name">Req<span>Shift</span><small>REQUIREMENTS ANALYSIS</small></span></a>
+      <div class="nav-links"><a href="#approach">How it works</a><a href="#research">Research</a></div>
+      <a class="nav-cta" href="/app">Open the app <span aria-hidden="true">↗</span></a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-grid wrap">
+        <div>
+          <div class="eyebrow">SYSTEMS ENGINEERING · FORMAL ANALYSIS</div>
+          <h1>Know which configurations work.</h1>
+          <p class="hero-copy">ReqShift turns engineering requirements into a traceable model, then checks the system configurations those requirements allow.</p>
+          <div class="hero-actions"><a class="button" href="/app">Explore the live app <span aria-hidden="true">→</span></a><a class="button secondary" href="#approach">How it works</a></div>
+          <div class="hero-note"><span class="hero-note-mark" aria-hidden="true">✓</span><span><b>AI drafts the model.</b> The solver determines the findings.</span></div>
+        </div>
+        <div class="example" aria-label="Simplified packaging line example">
+          <div class="example-head"><span>SIMPLIFIED EXAMPLE</span><span>PACKAGING LINE</span></div>
+          <p class="example-sentence">One controller. <em>Up to three filling heads.</em></p>
+          <div class="rule"></div>
+          <div class="model">
+            <div class="model-part"><span class="model-count">1</span><strong>Line controller</strong><small>fixed quantity</small></div>
+            <div class="model-link"><span>supervises</span></div>
+            <div class="model-part"><span class="model-count">0–3</span><strong>Filling heads</strong><small>variable quantity</small></div>
+          </div>
+          <div class="question"><span>QUESTION TO CHECK</span><strong>Can the line work with no filling heads?</strong><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h9M8 4l4 4-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="proof-row" aria-label="Product principles">
+      <div class="proof-items wrap"><div class="proof-item"><i>✓</i> Every model links to its source</div><div class="proof-item"><i>✓</i> Engineers review the draft</div><div class="proof-item"><i>✓</i> Findings come from the solver</div></div>
+    </section>
+
+    <section class="section wrap" id="problem">
+      <div class="problem"><div><span class="kicker">THE PROBLEM</span><h2>Requirements describe behavior. Counts often come later.</h2></div><p>Robots, controllers and other components may vary in number from one build to the next. When specifications leave those quantities open, teams need to reason through the combinations themselves. ReqShift helps make those choices checkable.</p></div>
+    </section>
+
+    <section class="section process" id="approach">
+      <div class="wrap"><div class="section-head"><span class="kicker">HOW IT WORKS</span><h2>From specification to analysis.</h2></div>
+        <div class="steps">
+          <article class="step"><span class="step-num">01</span><h3>Extract</h3><p>Create a goal model from the document, with each element linked to its source.</p></article>
+          <article class="step"><span class="step-num">02</span><h3>Review</h3><p>An engineer checks the model and supplies quantities the document leaves open.</p></article>
+          <article class="step"><span class="step-num">03</span><h3>Analyze</h3><p>GoalShift checks the allowed configurations and reports the outcomes.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="engine">
+      <div class="engine-grid wrap"><div><span class="kicker">A CLEAR DIVISION OF WORK</span><h2>AI helps read the document. It doesn’t decide the result.</h2><p>The extracted model is a draft for an engineer to review. GoalShift computes the findings from that model; AI is not part of the proving step.</p></div>
+        <div class="engine-flow" aria-label="AI drafts the input; GoalShift proves model outcomes"><div class="engine-card"><small>MODEL INPUT</small><strong>AI-assisted extraction<br>Engineer reviewed</strong></div><div class="engine-arrow" aria-hidden="true">→</div><div class="engine-card"><small>ANALYSIS</small><strong>GoalShift SAT<br>Solver-computed results</strong></div></div>
+      </div>
+    </section>
+
+    <section class="status" id="research"><div class="status-row wrap"><div class="status-label">PRODUCT STATUS<br><strong>Research prototype</strong></div><p>The analysis pipeline has been demonstrated on worked examples. Validation with an industry specification is the next milestone.</p><a href="/app">Open the live app <span aria-hidden="true">→</span></a></div></section>
+  </main>
+
+  <footer class="footer"><div class="footer-row wrap"><span class="footer-brand">ReqShift</span><span>Built on GoalShift research · TH Bingen</span><a href="#top">Back to top ↑</a></div></footer>
+</body>
+</html>
