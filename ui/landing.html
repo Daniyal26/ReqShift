@@ -182,7 +182,40 @@
     .footer{padding:32px 0}
     .footer-row{font-size:10px}
     .footer-row a{color:#4d6851;text-decoration:none}
-    @media(max-width:680px){.hero{padding:68px 0 57px}.hero:after{right:-55%;top:34%;width:330px;height:330px}.section{padding-top:68px;padding-bottom:68px}.capabilities{padding-bottom:68px}.engine{padding:65px 0}.example{padding:25px 18px 20px}.example:before{right:15px}.closing-row{padding:27px 23px}}
+    .workflow-visual{padding:27px 24px 18px;overflow:hidden}
+    .flow-stage-row{display:grid;grid-template-columns:minmax(0,1fr) 30px minmax(0,1fr) 30px minmax(0,1fr);align-items:center;gap:7px;margin-top:30px}
+    .flow-stage{min-width:0;min-height:185px;display:flex;flex-direction:column;align-items:stretch}
+    .flow-index{margin-bottom:15px;font:8px ui-monospace,Consolas,monospace;letter-spacing:.08em;color:#849184;white-space:nowrap}
+    .flow-stage>strong{margin-top:auto;padding-top:14px;font-size:10px;font-weight:620;color:#354638;line-height:1.4}
+    .flow-stage>small{margin-top:3px;font-size:8px;color:#808b81;line-height:1.4}
+    .doc-sheet{height:92px;position:relative;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:12px;border:1px solid #e6ebe2;border-radius:7px;background:#fafbf8;box-shadow:0 5px 12px rgba(31,54,35,.035)}
+    .doc-sheet i{display:block;width:90%;height:3px;border-radius:9px;background:#e6eae3}
+    .doc-sheet i:nth-of-type(2){width:68%}.doc-sheet i:nth-of-type(3){width:83%}.doc-sheet i:last-child{width:52%}
+    .doc-sheet .marked-line{position:relative;margin:1px -4px;padding:6px 5px;border-left:2px solid #759472;background:#edf2e9;font-size:7px;line-height:1.45;color:#425743;animation:source-mark 4.8s infinite}
+    .flow-connector{height:1px;position:relative;background:#e3e8df}
+    .flow-connector:after{content:"";position:absolute;right:0;top:-2px;width:5px;height:5px;border-top:1px solid #aab7a5;border-right:1px solid #aab7a5;transform:rotate(45deg)}
+    .flow-connector span{position:absolute;z-index:1;left:0;top:-1px;width:7px;height:3px;border-radius:4px;background:#749272;box-shadow:0 0 7px rgba(91,130,91,.4);animation:flow-particle 2.4s ease-in-out infinite}
+    .flow-connector.second span{animation-delay:1.2s}
+    .mini-model{height:92px;display:flex;flex-direction:column;justify-content:center;gap:0;padding:9px 10px;border:1px solid #e6ebe2;border-radius:7px;background:#fafbf8}
+    .mini-node{display:flex;align-items:center;gap:7px;font-size:7px;color:#58675a}
+    .mini-node b{width:24px;height:24px;display:grid;place-items:center;border:1px solid #dfe7da;border-radius:7px 7px 7px 2px;background:#eef2e9;color:#537250;font:8px ui-monospace,Consolas,monospace}
+    .mini-node.variable b{background:#e9efe3}
+    .mini-edge{height:12px;margin-left:11px;padding-left:12px;border-left:1px solid #bdcbb9;font-size:6px;color:#879286;line-height:12px}
+    .config-preview{height:92px;padding:10px;border:1px solid #e6ebe2;border-radius:7px;background:#fafbf8}
+    .config-heading{display:flex;justify-content:space-between;gap:3px;font-size:6px;letter-spacing:.05em;color:#889287;white-space:nowrap}
+    .config-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:12px}
+    .config-grid i{height:10px;border-radius:2px;background:#dce8d6;opacity:.35;animation:cell-check 4.8s infinite}
+    .config-grid i:nth-child(2),.config-grid i:nth-child(5),.config-grid i:nth-child(7){background:#98b38a}
+    .config-grid i:nth-child(1){animation-delay:.15s}.config-grid i:nth-child(2){animation-delay:.3s}.config-grid i:nth-child(3){animation-delay:.45s}.config-grid i:nth-child(4){animation-delay:.6s}.config-grid i:nth-child(5){animation-delay:.75s}.config-grid i:nth-child(6){animation-delay:.9s}.config-grid i:nth-child(7){animation-delay:1.05s}.config-grid i:nth-child(8){animation-delay:1.2s}.config-grid i:nth-child(9){animation-delay:1.35s}
+    .result-caption{display:flex;align-items:center;gap:4px;margin-top:8px;font-size:6px;color:#6f7e70;white-space:nowrap}
+    .result-dot{width:5px;height:5px;border-radius:50%;background:#71936d}
+    .visual-foot{display:flex;justify-content:space-between;gap:10px;margin-top:22px;padding-top:13px;border-top:1px solid #edf0eb;color:#879187;font-size:7px;letter-spacing:.035em}
+    .visual-foot>span:first-child{display:flex;align-items:center;gap:5px;color:#617461;letter-spacing:.08em}
+    .visual-foot i{width:5px;height:5px;border-radius:50%;background:#789574}
+    @keyframes flow-particle{0%{left:0;opacity:0}15%{opacity:1}85%{opacity:1}100%{left:calc(100% - 7px);opacity:0}}
+    @keyframes cell-check{0%,8%{opacity:.28;transform:scale(.88)}17%,80%{opacity:1;transform:scale(1)}94%,100%{opacity:.45;transform:scale(.94)}}
+    @keyframes source-mark{0%,12%{background:#f7f8f5;border-left-color:#d5ddd0}28%,76%{background:#edf2e9;border-left-color:#759472}92%,100%{background:#f7f8f5;border-left-color:#d5ddd0}}
+    @media(max-width:680px){.hero{padding:68px 0 57px}.hero:after{right:-55%;top:34%;width:330px;height:330px}.section{padding-top:68px;padding-bottom:68px}.capabilities{padding-bottom:68px}.engine{padding:65px 0}.example{padding:25px 18px 20px}.example:before{right:15px}.closing-row{padding:27px 23px}.workflow-visual{padding:25px 16px 16px}.flow-stage-row{grid-template-columns:1fr;gap:10px;margin-top:22px}.flow-stage{min-height:0;display:grid;grid-template-columns:82px 1fr;align-items:center;column-gap:11px}.flow-index{grid-column:1/-1;margin:0 0 5px}.doc-sheet,.mini-model,.config-preview{grid-row:span 2;height:76px}.flow-stage>strong{align-self:end;margin:0;padding:0;font-size:9px}.flow-stage>small{align-self:start;font-size:7px}.flow-connector{width:1px;height:15px;margin-left:40px;transform:rotate(90deg);transform-origin:left center}.flow-connector:after{top:auto;right:-2px;bottom:0;transform:rotate(135deg)}.visual-foot{margin-top:16px;font-size:6px}.config-grid{margin-top:8px}.result-caption{margin-top:6px}}
     :focus-visible{outline:3px solid #8ea778;outline-offset:3px;border-radius:3px}
     @media(max-width:900px){.hero-grid{grid-template-columns:1fr 1fr;gap:38px}.problem{gap:50px}.engine-grid{gap:42px}.evidence-grid{gap:38px}}
     @media(max-width:680px){.wrap{width:min(var(--max),calc(100% - 40px))}.topbar{height:66px}.nav-links{display:none}.hero{padding:58px 0 48px}.hero-grid{grid-template-columns:1fr;gap:34px}h1{font-size:clamp(45px,12vw,60px)}.example{padding:21px 18px}.example-sentence{font-size:16px}.model{grid-template-columns:1fr;gap:10px;padding:18px 0}.model-part{display:grid;grid-template-columns:34px 1fr;align-items:center;column-gap:10px;padding:10px 12px}.model-count{grid-row:span 2;margin:0}.model-part small{margin-top:3px}.model-link{display:none}.question{grid-template-columns:1fr 16px;gap:6px 10px}.question span{grid-column:1/-1}.proof-items{justify-content:flex-start;flex-wrap:wrap;gap:13px 24px}.section{padding:60px 0}.problem,.engine-grid,.evidence-grid{grid-template-columns:1fr;gap:21px}.section-head{margin-bottom:29px}.steps{grid-template-columns:1fr;gap:22px}.step{padding-top:14px}.step-num{margin-bottom:12px}.step p{max-width:none}.engine{padding:58px 0}.engine-flow{grid-template-columns:1fr 20px 1fr;gap:8px}.engine-card{min-height:100px;padding:13px}.engine-card strong{font-size:10px}.status-row{grid-template-columns:1fr;gap:10px}.footer-row{flex-wrap:wrap}.capabilities{padding-bottom:60px}.cap-grid{grid-template-columns:1fr;gap:10px}.cap-card{min-height:0;padding:18px}.cap-icon{margin-bottom:15px}.evidence{padding:58px 0}.closing{padding:45px 0}.closing-row{align-items:flex-start;flex-direction:column;padding:25px 22px}}
@@ -208,16 +241,16 @@
           <div class="hero-actions"><a class="button" href="/app">Explore the live app <span aria-hidden="true">→</span></a><a class="button secondary" href="#approach">How it works</a></div>
           <div class="hero-note"><span class="hero-note-mark" aria-hidden="true">✓</span><span><b>AI drafts the model.</b> The solver determines the findings.</span></div>
         </div>
-        <div class="example" aria-label="Simplified packaging line example">
-          <div class="example-head"><span>SIMPLIFIED EXAMPLE</span><span>PACKAGING LINE</span></div>
-          <p class="example-sentence">One controller. <em>Up to three filling heads.</em></p>
-          <div class="rule"></div>
-          <div class="model">
-            <div class="model-part"><span class="model-count">1</span><strong>Line controller</strong><small>fixed quantity</small></div>
-            <div class="model-link"><span>supervises</span></div>
-            <div class="model-part"><span class="model-count">0–3</span><strong>Filling heads</strong><small>variable quantity</small></div>
+        <div class="example workflow-visual" aria-label="Illustrative animation showing a requirement becoming a model and solver analysis">
+          <div class="example-head"><span>FROM REQUIREMENT TO ANALYSIS</span><span>ILLUSTRATIVE</span></div>
+          <div class="flow-stage-row">
+            <article class="flow-stage source-stage"><span class="flow-index">01 / SOURCE</span><div class="doc-sheet"><i></i><i></i><i></i><div class="marked-line">One controller supervises up to three filling heads.</div><i></i></div><strong>Requirement text</strong><small>Original wording retained</small></article>
+            <div class="flow-connector" aria-hidden="true"><span></span></div>
+            <article class="flow-stage model-stage"><span class="flow-index">02 / MODEL</span><div class="mini-model"><div class="mini-node"><b>1</b><span>Controller</span></div><div class="mini-edge"><span>supervises</span></div><div class="mini-node variable"><b>0–3</b><span>Filling heads</span></div></div><strong>Engineer-reviewed model</strong><small>Elements linked to source</small></article>
+            <div class="flow-connector second" aria-hidden="true"><span></span></div>
+            <article class="flow-stage result-stage"><span class="flow-index">03 / CHECK</span><div class="config-preview"><div class="config-heading"><span>CONFIGURATIONS</span><span>GOALSHIFT</span></div><div class="config-grid" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="result-caption"><span class="result-dot"></span>Solver-checked outcomes</div></div><strong>Configuration analysis</strong><small>Assumptions stay visible</small></article>
           </div>
-          <div class="question"><span>QUESTION TO CHECK</span><strong>Can the line work with no filling heads?</strong><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h9M8 4l4 4-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="visual-foot"><span><i></i> SOURCE-TRACEABLE</span><span>AI drafts · Engineer reviews · Solver checks</span></div>
         </div>
       </div>
     </section>
@@ -236,10 +269,6 @@
         <article class="cap-card"><span class="cap-icon" aria-hidden="true">↕</span><h3>Missing bounds, surfaced</h3><p>See where quantities remain unspecified and which analysis results depend on those gaps.</p></article>
         <article class="cap-card"><span class="cap-icon" aria-hidden="true">∴</span><h3>Solver-backed findings</h3><p>Review configurations, behavior classes and findings computed from the checked model.</p></article>
       </div>
-    </section>
-
-    <section class="section wrap" id="problem" data-reveal>
-      <div class="problem"><div><span class="kicker">THE PROBLEM</span><h2>Requirements describe behavior. Counts often come later.</h2></div><p>Robots, controllers and other components may vary in number from one build to the next. When specifications leave those quantities open, teams need to reason through the combinations themselves. ReqShift helps make those choices checkable.</p></div>
     </section>
 
     <section class="section process" id="approach" data-reveal>
