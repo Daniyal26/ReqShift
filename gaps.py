@@ -533,6 +533,100 @@ def rank_by_effect(spec, gap_list, analyzer):
     return gap_list
 
 
+def _lead_parts(g):
+    """One gap broken into the pieces a lead entry is built from.
+
+    Structured rather than a finished string, because BOTH the markdown report and
+    the page need this and a second copy of the rule would drift. Returns
+    (label, supplies, tail), where `supplies` is None when the sentence did not
+    match either known phrasing and `tail` is then the whole remainder.
+
+    `why_it_matters` opens with the label, so using it verbatim after a bold label
+    prints the name twice. It also spells out every dependant, and one AC drive motor
+    entry named nine of them, which is a paragraph where the lead needs a line.
+
+    Two phrasings exist and both must be handled. A critical gap ends "and the
+    specification allows there to be none at all", a high one ends "so how many exist
+    decides whether that work can be done". Handling only the first turned every high
+    lead line into a fragment starting mid-sentence.
+    """
+    label = g["label"]
+    why = g.get("why_it_matters") or ""
+    body = why[len(label):].lstrip() if why.startswith(label) else why
+    if body.startswith("supplies"):
+        body = body[len("supplies"):].strip()
+    TAILS = [(", and the specification allows there to be none at all.",
+              "The specification allows there to be none at all."),
+             (", so how many exist decides whether that work can be done.",
+              "How many exist decides whether that work can be done.")]
+    for end, replacement in TAILS:
+        if body.endswith(end):
+            body = body[:-len(end)]
+            break
+    else:
+        # A third shape, used by capacity and demand gaps: "X supplies Y. <why>".
+        # Neither tail above matches, and returning the remainder whole left the
+        # dependant dangling as a fragment, printing "Motor. Gapping unit belt.
+        # Without a capacity...". Split at the first sentence end instead: what
+        # precedes it is the dependant, what follows is the explanation.
+        head, sep, rest = (body or why).partition(". ")
+        if sep and rest:
+            return label, head.strip(), rest.strip()
+        return label, None, (body or why)
+    parts = [x.strip() for x in body.split(",") if x.strip()]
+    if len(parts) > 2:
+        listed = ", ".join(parts[:2]) + " and " + str(len(parts) - 2) + " others"
+    else:
+        listed = " and ".join(parts) if parts else "other parts"
+    return label, listed, replacement
+
+
+def _lead_line(g):
+    """The markdown form of one lead entry."""
+    label, supplies, tail = _lead_parts(g)
+    if supplies is None:
+        return "**" + label + ".** " + tail
+    return "**" + label + "** supplies " + supplies + ". " + tail
+
+
+def lead_items(gap_list, n=3):
+    """The lead as data, for any caller that renders its own DOM.
+
+    The page used to show 16 critical cards with nothing saying which to read. It
+    cannot recompute the choice itself: the rule prefers gaps carrying no audit
+    doubt, and a second implementation in JavaScript would be the third time logic
+    in this project drifted from its copy.
+    """
+    out = []
+    for g in _lead(gap_list, n):
+        label, supplies, tail = _lead_parts(g)
+        said = g.get("what_the_document_says")
+        out.append({"actor": g.get("actor"), "label": label, "supplies": supplies,
+                    "tail": tail, "severity": g.get("severity"),
+                    "quote": said if said and g.get("verdict") != "wrong_unit" else None})
+    return out
+
+def _lead(gaps, n=3):
+    """The first half page: the few gaps worth reading if nothing else is read.
+
+    A 51 entry report is 593 lines, and the reader who decides whether any of it
+    matters reads the top of it. The count is also the wrong thing to lead with,
+    because it is mostly arithmetic: the naming pass finds about three times the
+    participants, so it finds about three times the missing numbers, while gaps PER
+    participant actually fell. Fifty one is not three times the insight of eighteen.
+
+    Nothing is dropped. Everything still appears in full below.
+    """
+    crit = [g for g in gaps if g["severity"] == "critical"]
+    pool = crit or [g for g in gaps if g["severity"] == "high"]
+    # Prefer gaps carrying no audit doubt. A lead item resting on a flagged edge is
+    # the worst thing to put first, because the one entry a reader checks would be
+    # the one hedged three lines later. Doubted ones stay, they just do not lead.
+    clean = [g for g in pool if not g.get("rests_on")]
+    rest = [g for g in pool if g.get("rests_on")]
+    return (clean + rest)[:n]
+
+
 def to_markdown(gaps, doc_name="the specification", prescreen=None):
     """The deliverable. Findings first, severity first, no preamble."""
     out = [f"# What {doc_name} does not specify", ""]
@@ -551,6 +645,31 @@ def to_markdown(gaps, doc_name="the specification", prescreen=None):
             "Each one is a number the analysis needs, that the document does not give. "
             "Somebody decides each of these during design. Right now that decision is "
             "not written down.", ""]
+
+    # The lead. Only worth having when the list is long enough to hide things.
+    lead = _lead(gaps) if len(gaps) > 4 else []
+    if lead:
+        # The sentence has to match the severity actually being led. When a document
+        # has no critical gaps the lead falls back to high ones, and the critical
+        # wording ("allows it to be absent entirely") would then be simply untrue.
+        led_critical = lead[0]["severity"] == "critical"
+        out += ["## Start here", "",
+                "If you read nothing else, read these "
+                + ("one" if len(lead) == 1 else str(len(lead)))
+                + (". Each names a part something else needs, that the document "
+                   "allows to be absent entirely." if led_critical else
+                   ". Each names a part something else needs, whose count the "
+                   "document never fixes."), ""]
+        for g in lead:
+            out += [_lead_line(g), ""]
+            said = g.get("what_the_document_says")
+            if said and g.get("verdict") != "wrong_unit":
+                out += ["> The document says: " + said, ""]
+        others = len(gaps) - len(lead)
+        if others > 0:
+            out += ["The remaining " + str(others) + " are listed in full below, "
+                    "grouped by how much the absence can break.", ""]
+
 
     # What this list can and cannot promise, measured rather than assumed. Two
     # readings of the same 83 page specification agreed on 46% of the cardinality

@@ -758,6 +758,12 @@ $('#file').addEventListener('change', e => {
     + '<option value="smt">z3 (SMT), integer counts and timing</option></select></label>'
     + '<label style="display:inline-flex;gap:8px;align-items:center">'
     + '<input type="checkbox" id="explain"> Write the findings up in prose</label>'
+    // The naming pass rides with this mode and only this mode. It finds about
+    // three times the participants, which is what the gap report wants and what
+    // takes the solver past the configuration cap.
+    + '<label style="display:inline-flex;gap:8px;align-items:center">'
+    + '<input type="checkbox" id="gapsOnly"> Gap report only, no solver'
+    + '</label>'
     + '<span class="mono" id="backendTag" style="color:var(--ink-3)">checking&hellip;</span>'
     + '</div>';
   $('#drop').insertBefore(box, $('.rx-intake-foot'));
@@ -852,8 +858,9 @@ $('#cancelRun').onclick = () => {
 async function startJob(opts){
   opts = opts || {};
   CANCELLED = false;
+  const gapsOnly = !!($('#gapsOnly') && $('#gapsOnly').checked);
   const body = { text: txt.value, explain: $('#explain').checked,
-                 engine: $('#engine').value };
+                 engine: $('#engine').value, gaps_only: gapsOnly };
   // `screen:false` is how "Extract anyway" gets past an out-of-scope verdict.
   if (opts.screen === false) body.screen = false;
   drawStages({stages: [
@@ -863,9 +870,11 @@ async function startJob(opts){
     {id:'extract',label:'AI drafts a goal model'},
     {id:'check',label:'Checking the model is well formed'},
     {id:'audit',label:'Auditing what each number counts'},
-    {id:'solve', label: body.engine === 'smt'
-        ? 'z3 proves what follows' : 'GoalShift proves what follows'},
-    ...(body.explain ? [{id:'write',label:'Writing the findings up'}] : [])
+    ...(gapsOnly ? [{id:'gaps',label:'Listing what the document never states'}]
+                : [{id:'solve', label: body.engine === 'smt'
+                    ? 'z3 proves what follows' : 'GoalShift proves what follows'}]),
+    ...(gapsOnly || !body.explain ? []
+        : [{id:'write',label:'Writing the findings up'}])
   ], stage:'read'});
   show('vRun');
   startClock();
@@ -993,10 +1002,11 @@ function solverName(){
 
 function render(j){
   const {spec, result, findings, summary, trace, writeup} = j;
-  const order = result.order;
+  // Gap-report mode runs no solver on purpose, so there is no result to read from.
+  const order = result ? result.order : [];
   const lab = {}; spec.actors.forEach(a => lab[a.type] = a.label || a.type);
   const card = {}; spec.actors.forEach(a => card[a.type] = [a.lo, a.hi]);
-  const problems = findings.filter(f => f.kind !== 'inert-cardinality');
+  const problems = (findings || []).filter(f => f.kind !== 'inert-cardinality');
   // A finding is `proved: false` when it rests on an input the document never
   // states. Both the tiles and the findings list read it, so it is derived once.
   const openCount = problems.filter(f => f.proved === false).length;
@@ -1012,7 +1022,7 @@ function render(j){
     SEC.push({ id: 'sec-' + id, label, count, where: where || 'main' });
     return n;
   };
-  const smt = (j.engine === 'smt') || result.engine === 'smt';
+  const smt = (j.engine === 'smt') || (result && result.engine === 'smt');
 
   /* ---- the two steps ----
      Step 1 is the gap report: the quantities the document never states. Step 2 is
@@ -1026,10 +1036,16 @@ function render(j){
   const openGaps = gapList.filter(g => !(answerable(g) && given[g.actor]));
   const step = givenN ? 2 : 1;
   const provisional = step === 1 && openGaps.length > 0;
-  const brokenConfigs = result.classes
+  const brokenConfigs = !result ? 0 : result.classes
     .filter(c => c.pattern.some(p => p === 'X'))
     .reduce((n, c) => n + (c.configurations ?? c.members.length), 0);
 
+  // Everything from here to the verdict is a statement ABOUT A PROOF. In gap-report
+  // mode no proof was run, so none of it may be shown, not even as a placeholder.
+  // Declared out here because it is APPENDED far below, past the guard. A const
+  // inside the block is invisible outside it, which broke the normal path too.
+  let engineBanner = null;
+  if (result) {
   const steps = el('div', 'steps');
   const stepCard = (n, t, d, cls) => {
     const s = el('div', 'stp ' + cls);
@@ -1069,7 +1085,7 @@ function render(j){
       + 'thesis describes.</span>';
   // On step 1 the engine is not the story and the banner is filed with the numbers
   // it produced. On step 2 it is the proof claim, so it stays in front.
-  const engineBanner = banner;
+  engineBanner = banner;
   /* A dependency the audit cannot tie to a single sentence is KEPT and flagged.
      It used to be removed. On the first real specification that emptied the model
      of 9 of its 26 dependencies and the analysis came back with no problems at
@@ -1200,6 +1216,20 @@ function render(j){
       + result.stats.classes + ' test '
       + (result.stats.classes === 1 ? 'scenario is' : 'scenarios are') + ' enough.</small>';
   out.appendChild(vd);
+  } else {
+    // No solver ran. Say so before anything else, because every OTHER page this
+    // tool produces leads with a proof, and a reader who skips this line would
+    // reasonably assume these gaps had been proved to matter. They have not been.
+    const nb = el('div', 'banner');
+    nb.innerHTML = '<b>No solver was run.</b> This is the gap report on its own. '
+      + 'It lists what the document never states, which needs no proof. It does '
+      + 'NOT tell you which configurations work, because nothing was analysed. '
+      + 'Run it again without gap-report mode for that.'
+      + (j.named_parts ? '<br><small>A first pass named ' + j.named_parts
+          + ' kinds of equipment before the model was drafted, which finds about '
+          + 'three times the participants a single pass does.</small>' : '');
+    out.appendChild(nb);
+  }
 
   /* ---- what the document never said ----
      Findings are things the solver PROVED about the model. These are things the
@@ -1448,8 +1478,47 @@ function render(j){
   };
 
   // On step 1 the gap report IS the result, so it leads. On step 2 the proof does.
+  /* ---- the lead ----
+     16 critical cards with nothing saying which to read is a wall, and the count is
+     the wrong thing to lead with anyway: the naming pass finds about three times the
+     participants, so it finds three times the missing numbers, while gaps PER
+     participant fell. The choice of WHICH three is made on the server, because it
+     prefers gaps carrying no audit doubt and a copy of that rule here would drift. */
+  const leadItems = (step === 1 && j.gaps_lead) || [];
+  if (leadItems.length){
+    const ls = sect("lead", "Start here", leadItems.length);
+    ls.append(el("h2", null, "Start here"),
+      el("p", "lede", "If you read nothing else, read "
+        + (leadItems.length === 1 ? "this one" : "these " + leadItems.length) + ". "
+        + (leadItems[0].severity === "critical"
+           ? "Each names a part something else needs, that the document allows to be "
+             + "absent entirely."
+           : "Each names a part something else needs, whose count the document never "
+             + "fixes.")));
+    leadItems.forEach(it => {
+      const c = el("div", "card pad");
+      c.innerHTML = "<b>" + esc(it.label) + "</b>"
+        + (it.supplies ? " supplies " + esc(it.supplies) + ". " : ". ")
+        + esc(it.tail)
+        + (it.quote ? '<br><span class="mono soft">The document says: '
+                      + esc(it.quote) + "</span>" : "");
+      ls.appendChild(c);
+    });
+    out.appendChild(ls);
+  }
+
   const gapNode = step === 1 ? gapSection() : null;
   if (gapNode) out.appendChild(gapNode);
+
+  if (!result) {
+    // Everything below describes a PROOF: the folds, the tiles, the configuration
+    // table, the statechart. None of it exists in gap-report mode. Falling through
+    // does not just mislead, it throws, because `engineBanner` and its neighbours are
+    // declared inside the guarded block above and would be read from outside it.
+    SECS = SEC;
+    buildRail(visibleSections());
+    return;
+  }
 
   /* ---- the two collapsing boxes ----
      A result page with nine sections open at once reads as a lab report. Only the

@@ -81,7 +81,7 @@ def _keep_model(job_id, spec, trace):
 
 
 def run_job(job_id, text, explain, backend, goalshift_dir, engine="sat",
-            screening=True, verifying=True):
+            screening=True, verifying=True, gaps_only=False):
     try:
         set_stage(job_id, "read")
 
@@ -102,7 +102,19 @@ def run_job(job_id, text, explain, backend, goalshift_dir, engine="sat",
                 return
 
         set_stage(job_id, "extract", screen=screen)
-        extracted = extractor.extract(text, backend=backend)
+        # The naming pass finds about three times the participants, measured on two
+        # documents from different genres. It is confined to the gap report because
+        # those participants take the solver to 237 trillion configurations against a
+        # 200,000 cap, where nothing is analysed at all.
+        parts = []
+        if gaps_only:
+            try:
+                parts = extractor.enumerate_parts(text, backend=backend)
+                set_stage(job_id, "extract", screen=screen, named_parts=len(parts))
+            except Exception as e:
+                # Never a gate. Losing this costs recall, blocking on it costs the run.
+                set_stage(job_id, "extract", screen=screen, naming_error=str(e))
+        extracted = extractor.extract(text, backend=backend, parts=parts)
 
         set_stage(job_id, "check")
         shape = schema.shape_errors(extracted)
@@ -257,23 +269,52 @@ def run_job(job_id, text, explain, backend, goalshift_dir, engine="sat",
         # Severity says what a missing number is CONNECTED to. This says whether it
         # can change the answer at all, which is the question a reader has, and it
         # is answered by the solver rather than by a rule of thumb.
-        try:
-            # Every solve goes through the same door. One rule with no exceptions
-            # is the only version of this that stays true: the first fix covered the
-            # job path, missed these two, and the crash came straight back through
-            # the one the reader actually clicks.
-            analyzer = (lambda sp: solve_isolated.solve(
-                sp, smt=(engine == "smt"), goalshift_dir=goalshift_dir))
-            gap_list = gaps.rank_by_effect(spec, gap_list, analyzer)
-        except Exception:
-            pass                      # ranking is an improvement, never a gate
+        # Ranking asks the solver what each gap can change, ONE CALL PER GAP. On a
+        # naming-pass model that is fifty-odd solves of a model the solver has already
+        # refused, so the mode that needs ranking least is the one that cannot afford it.
+        if not gaps_only:
+            try:
+                # Every solve goes through the same door. One rule with no exceptions
+                # is the only version of this that stays true: the first fix covered the
+                # job path, missed these two, and the crash came straight back through
+                # the one the reader actually clicks.
+                analyzer = (lambda sp: solve_isolated.solve(
+                    sp, smt=(engine == "smt"), goalshift_dir=goalshift_dir))
+                gap_list = gaps.rank_by_effect(spec, gap_list, analyzer)
+            except Exception:
+                pass                  # ranking is an improvement, never a gate
         # After the ranking, and outside the try, because a ranking that failed is
         # still a gap list that must carry its marks.
         gaps.attach_provenance(gap_list, spec, trace)
         gaps_md = gaps.to_markdown(gap_list, "this specification", screen) if gap_list else None
+        # Computed here, never in the page. The choice prefers gaps carrying no audit
+        # doubt, and a second copy of that rule in JavaScript would be the third time
+        # logic in this project drifted away from its duplicate.
+        gaps_lead = gaps.lead_items(gap_list) if gap_list else []
 
+        if gaps_only:
+            # The gap report is the whole deliverable here, so this is a DONE state and
+            # not a failure. It answers "what does this specification fail to state"
+            # without a solver, which is also why it cannot crash or hang the way the
+            # proof path did.
+            set_stage(job_id, "done", state="gaps_only", spec=spec, trace=trace,
+                      audit=audit, gaps=gap_list, gaps_markdown=gaps_md,
+                      gaps_lead=gaps_lead,
+                      quantity_audit=qaudit, structure_audit=saudit,
+                      structure_changed=structure_changed,
+                      structure_flagged=structure_flagged, minimum_audit=maudit,
+                      maximum_audit=xaudit, max_changed=max_changed,
+                      max_unstated=max_unstated, max_refused=max_refused,
+                      minimum_changed=min_changed, minimum_unstated=min_unstated,
+                      decomp_audit=daudit, decomp_fixed=decomp_fixed,
+                      decomp_flagged=decomp_flagged, recall=recall,
+                      dep_recall=draudit, dep_added=dep_added,
+                      dep_rejected=dep_rejected, dep_added_rejected=dep_added_rejected,
+                      named_parts=len(parts), screen=screen)
+            return
         set_stage(job_id, "solve", spec=spec, trace=trace, audit=audit,
                   gaps=gap_list, gaps_markdown=gaps_md, quantity_audit=qaudit,
+                  gaps_lead=gaps_lead,
                   structure_audit=saudit, structure_changed=structure_changed,
                   structure_flagged=structure_flagged, minimum_audit=maudit, maximum_audit=xaudit,
                   max_changed=max_changed, max_unstated=max_unstated,
@@ -460,6 +501,7 @@ class Handler(BaseHTTPRequestHandler):
                 # the solve step claims GoalShift ran when z3 did.
                 screening = body.get("screen", True) is not False
                 verifying = body.get("verify", True) is not False
+                gaps_only = bool(body.get("gaps_only"))
                 for st in stages:
                     if st["id"] == "solve" and engine == "smt":
                         st["label"] = "z3 proves what follows"
@@ -469,14 +511,21 @@ class Handler(BaseHTTPRequestHandler):
                     stages = [st for st in stages if st["id"] != "audit"]
                 if not body.get("explain"):
                     stages = [st for st in stages if st["id"] != "write"]
+                if gaps_only:
+                    # Naming the stage after the deliverable, not after what was skipped.
+                    stages = [st for st in stages if st["id"] not in ("solve", "write")]
+                    stages.append({"id": "gaps",
+                                   "label": "Listing what the document never states"})
                 JOBS[job_id] = {"id": job_id, "state": "running", "stage": "read",
                                 "stages": stages,
                                 "explain": bool(body.get("explain")),
-                                "engine": engine}
+                                "engine": engine,
+                                "gaps_only": gaps_only}
             t = threading.Thread(target=run_job, daemon=True, args=(
                 job_id, text, bool(body.get("explain")),
                 body.get("backend") or "auto", self.server.goalshift_dir,
-                body.get("engine") or "sat", screening, verifying))
+                body.get("engine") or "sat", screening, verifying,
+                gaps_only))
             t.start()
             return self._json({"id": job_id})
 

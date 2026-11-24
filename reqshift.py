@@ -76,6 +76,21 @@ def main(argv=None):
                    help="skip the second pass that audits what each extracted number "
                         "actually counts. Not recommended: 95%% of bounds failed that "
                         "audit on real documents.")
+    # Tri-state on purpose. ON by default for --gaps-only, where it finds about three
+    # times the participants on both documents it was measured against. OFF by default
+    # for the solver path, where 49 actors is 237 trillion configurations against a
+    # 200,000 cap and nothing gets analysed at all.
+    p.add_argument("--enumerate-parts", dest="enumerate_parts", action="store_true",
+                   default=None,
+                   help="name the equipment in a cheap first pass, then extract the "
+                        "model with that list as candidates. A part mentioned once is "
+                        "missed 45%% of the time by the single pass. Already the default "
+                        "with --gaps-only. Costs one extra call.")
+    p.add_argument("--no-enumerate-parts", dest="enumerate_parts",
+                   action="store_false",
+                   help="turn the naming pass off, including for --gaps-only. The report "
+                        "will name fewer parts and therefore miss their unstated "
+                        "quantities.")
     p.add_argument("--corroborate", action="store_true",
                    help="read the document a SECOND time and mark every dependency the "
                         "second reading did not also draw. 31%% of edges are drawn by "
@@ -85,6 +100,10 @@ def main(argv=None):
                    help="stop after the gap report. Answers 'what does this "
                         "specification fail to specify' without running any solver.")
     args = p.parse_args(argv)
+    if args.enumerate_parts is None:
+        # Only the gap report can afford the participants this pass recovers. The
+        # solver cannot, so it stays opt-in there rather than silently failing.
+        args.enumerate_parts = bool(args.gaps_only)
     if not args.input and not args.spec:
         p.error("give a requirements file, or --spec to re-analyse an existing model")
 
@@ -163,8 +182,24 @@ def main(argv=None):
 
         print(f"Reading {name} ({len(text.split())} words) with {args.model} "
               f"via the {chosen} backend...")
+        parts = []
+        if args.enumerate_parts:
+            # A cheap pass whose only job is to name the equipment, run BEFORE the model
+            # is built. It exists because a part mentioned once was missed 45% of the time
+            # against 14% for a part mentioned three times or more, and a part missed at
+            # extraction is invisible to every audit that follows.
+            try:
+                parts = extractor.enumerate_parts(
+                    text, backend=args.backend, model=args.model)
+                print(f"  a first pass names {len(parts)} kinds of equipment")
+            except Exception as e:
+                # Never a gate. Losing this pass costs recall, blocking on it costs
+                # the whole run.
+                print(f"  the naming pass failed, carrying on without it. {e}",
+                      file=sys.stderr)
         try:
-            extracted = extractor.extract(text, backend=args.backend, model=args.model)
+            extracted = extractor.extract(text, backend=args.backend, model=args.model,
+                                          parts=parts)
         except extractor.ExtractionError as e:
             print(f"\nExtraction failed.\n{e}", file=sys.stderr)
             return 2
@@ -425,6 +460,10 @@ def main(argv=None):
             import corroborate as _c
             print("Reading it a second time to corroborate the dependencies...")
             other = _c.second_reading(text, backend=args.backend, model=args.model)
+            # Keep it. It costs a full extraction and it is the only evidence of WHY an
+            # edge went unjudged, so throwing it away makes the result undiagnosable.
+            _write(os.path.join(args.outdir, "second_reading.spec.json"),
+                   json.dumps(other, indent=1))
             spec, ok_, bad_, unjudged = _c.mark_uncorroborated(spec, other)
             _write(spec_path, json.dumps(spec, indent=1))
             print(f"  {len(ok_)} of {len(ok_) + len(bad_)} dependencies were drawn by "

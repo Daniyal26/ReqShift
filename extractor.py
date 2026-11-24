@@ -166,7 +166,7 @@ def _run_cli(exe, prompt, timeout=None):
     return proc.stdout
 
 
-def extract(text, backend="auto", model=MODEL):
+def extract(text, backend="auto", model=MODEL, parts=None):
     """Requirements prose -> the flat dict described by EXTRACTION_SCHEMA."""
     if backend == "auto":
         options = available_backends()
@@ -177,13 +177,13 @@ def extract(text, backend="auto", model=MODEL):
                 "or sign in to Claude Code, which puts a `claude` command on your PATH.")
         backend = options[0]
     if backend == "sdk":
-        return _extract_sdk(text, model)
+        return _extract_sdk(text, model, parts)
     if backend == "cli":
-        return _extract_cli(text, model)
+        return _extract_cli(text, model, parts)
     raise ExtractionError(f"Unknown backend {backend!r}. Use sdk, cli, or auto.")
 
 
-def _extract_sdk(text, model):
+def _extract_sdk(text, model, parts=None):
     import anthropic
 
     client = anthropic.Anthropic()
@@ -192,7 +192,8 @@ def _extract_sdk(text, model):
         model=model,
         max_tokens=16000,
         system=SYSTEM,
-        messages=[{"role": "user", "content": USER_TEMPLATE.format(text=text)}],
+        messages=[{"role": "user", "content": USER_TEMPLATE.format(text=text)
+                                 + parts_block(parts)}],
         output_config={"format": {"type": "json_schema", "schema": EXTRACTION_SCHEMA}},
     )
     if getattr(response, "stop_reason", None) == "refusal":
@@ -206,19 +207,134 @@ def _extract_sdk(text, model):
     return json.loads(payload)
 
 
-def _extract_cli(text, model):
+def _extract_cli(text, model, parts=None):
     exe = _claude_cli()
     if not exe:
         raise ExtractionError("The `claude` command was not found on your PATH.")
 
     # The CLI has no structured-output constraint, so the schema goes in the prompt and
     # the reply is parsed defensively.
-    prompt = (SYSTEM + "\n\n" + USER_TEMPLATE.format(text=text) + "\n\n"
+    prompt = (SYSTEM + "\n\n" + USER_TEMPLATE.format(text=text)
+              + parts_block(parts) + "\n\n"
               "Reply with a single JSON object and nothing else. No prose before or "
               "after it, no markdown fence. It must validate against this JSON schema:\n"
               + json.dumps(EXTRACTION_SCHEMA))
 
     return _loads_loose(_run_cli(exe, prompt, EXTRACT_TIMEOUT))
+
+
+PARTS_SYSTEM = """You list the kinds of equipment a requirements document names. Nothing else.
+
+This is deliberately an easier job than building a goal model, and it exists because the
+harder job loses things. Measured on a real conveyor specification, a part mentioned only
+once was missed about 45% of the time, against 14% for a part mentioned three times or
+more. Every part missed here is invisible to everything downstream, so err toward listing.
+
+A KIND of equipment, not an instance and not a property. "Conveyor" is a kind. "Twelve
+conveyors" is still the one kind. "Stainless steel" is not a kind.
+
+Include a part mentioned only once, in passing, in a table, or in a parenthesis. Those are
+exactly the ones that get lost.
+
+Do not list the system as a whole, the customer, the supplier, or the standard it complies
+with. List the physical or software parts the system is assembled from.
+
+For each one give a VERBATIM quote from the document that names it. If you cannot quote it,
+do not list it. The quote is what stops this pass inventing parts, so it is not optional."""
+
+PARTS_TEMPLATE = """List every kind of equipment named in these requirements.
+
+<requirements>
+{text}
+</requirements>
+
+Return JSON only."""
+
+PARTS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "parts": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "quote": {"type": "string"},
+                },
+                "required": ["name", "quote"],
+                "additionalProperties": False,
+            },
+        }
+    },
+    "required": ["parts"],
+    "additionalProperties": False,
+}
+
+PARTS_NOTE = """
+The document is known to name these parts. Each was found by a separate pass whose only
+job was to list them, together with the sentence naming it.
+
+{parts}
+
+Account for every one. Include it as a participant where it is a distinct kind of thing
+that the system depends on. These are CANDIDATES, not instructions: leave one out when it
+is a property, a material, a duplicate under another name, or not a participant at all.
+The list is here because parts mentioned once tend to get lost, not because it is right."""
+
+
+def enumerate_parts(text, backend="auto", model=MODEL):
+    """List the kinds of equipment the document names, before any model is built.
+
+    A cheap high-recall pass whose output is fed to `extract` as candidates. Returns a
+    list of {"name", "quote"} dicts. A failure here must degrade to ordinary single-pass
+    extraction rather than block it, so callers are expected to catch and carry on.
+    """
+    if backend == "auto":
+        options = available_backends()
+        if not options:
+            raise ExtractionError("No way to reach Claude.")
+        backend = options[0]
+    if backend == "sdk":
+        import anthropic
+
+        client = anthropic.Anthropic()
+        response = client.messages.create(
+            model=model,
+            max_tokens=8000,
+            system=PARTS_SYSTEM,
+            messages=[{"role": "user", "content": PARTS_TEMPLATE.format(text=text)}],
+            output_config={"format": {"type": "json_schema", "schema": PARTS_SCHEMA}},
+        )
+        payload = next(b.text for b in response.content if b.type == "text")
+        got = json.loads(payload)
+    else:
+        exe = _claude_cli()
+        if not exe:
+            raise ExtractionError("The `claude` command was not found on your PATH.")
+        prompt = (PARTS_SYSTEM + "\n\n" + PARTS_TEMPLATE.format(text=text) + "\n\n"
+                  "Reply with a single JSON object and nothing else, validating against:\n"
+                  + json.dumps(PARTS_SCHEMA))
+        got = _loads_loose(_run_cli(exe, prompt, EXTRACT_TIMEOUT))
+
+    out, seen = [], set()
+    for p in (got or {}).get("parts", []):
+        name = str(p.get("name") or "").strip()
+        quote = str(p.get("quote") or "").strip()
+        # The quote is the whole safeguard. A part without one is dropped rather than
+        # passed on, because an invented candidate is worse here than a missing one.
+        if not name or not quote or name.lower() in seen:
+            continue
+        seen.add(name.lower())
+        out.append({"name": name, "quote": quote})
+    return out
+
+
+def parts_block(parts):
+    """The candidate list as it appears in the extraction prompt."""
+    if not parts:
+        return ""
+    lines = ["  - %s\n      \"%s\"" % (p["name"], p["quote"][:160]) for p in parts]
+    return PARTS_NOTE.format(parts="\n".join(lines))
 
 
 def _loads_loose(s):

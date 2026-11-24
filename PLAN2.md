@@ -116,7 +116,7 @@ If a second document lands near those, the repairs generalise and the measuremen
 quoted as properties of the tool. If it lands far away, they are properties of OPTCL and
 must be reported that way.
 
-## Phase F. `--corroborate` on real material. One extra extraction.
+## Phase F. `--corroborate` on real material. DONE 2026-08-30. Cost 27%, one finding uniquely demoted. See bench/corroboration.py.
 
 It has never read a real specification twice. Run the best in-scope document with
 `--corroborate` and check the prediction from the simulation: **corroboration should cost

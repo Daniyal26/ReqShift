@@ -1,0 +1,308 @@
+FLEXIBILITY, ADAPTABILITY, SCALABILITY
+Dematic Modular Conveyor System
+DEMATIC MCS UTILIZES A UNIVERSAL SIDE FRAME FOR ALL MODULES. THIS DESIGN 
+FEATURE ALLOWS FOR EASIER RE-CONFIGURATION AS YOUR OPERATION CHANGES
+Efficient 
+Performance
+Configurable 
+Modules
+Scalable 
+ Architecture
+3
+MORE PERFORMANCE
+Dematic Modular Conveyor System (Dematic MCS) is a 
+totally integrated package conveyor technology. Whether 
+handling cases, totes, trays, poly bags, or parcel envelopes, 
+Dematic MCS transports them efficiently and effectively.
+MCS offers a complete range of modules to create a 
+highly efficient material flow configuration. MCS is often 
+integrated with other devices such as scanners, sorters, 
+label print and apply devices, case sealers, in-line weigh 
+scales, palletizers, and robotics.
+A COMPLETE FAMILY OF MODULES
+Dematic MCS uses a universal, metric side frame for all 
+modules. This design allows for easier reconfiguration as 
+your operation changes. Dematic MCS is made up of over 
+40 standard conveyor models for configuring the most 
+optimized conveyor network for your application.
+Dematic MCS is designed for a wide variety of functions, 
+including transportation, accumulation, gapping, and 
+sorting (right angle transfers and steerable wheel diverts). 
+The conveyor is available in several standard widths and 
+configurations — horizontal, inclining, and declining sections 
+with straight, curved, or angled junctions (wedges).
+MORE DRIVE OPTIONS
+Dematic MCS is configured using AC drive motors, DC 
+low voltage motor driven rollers, or a combination of both, 
+providing the best option for your conveyor system layout. 
+For example, with long runs of conveyor, it is most cost 
+effective to use one AC motor instead of multiple motor 
+driven rollers. Or, a right angle transfer module can be 
+inserted into a single length of AC driven accumulation 
+conveyor by “snubbing down” the narrow Kevlar® drive 
+belt, omitting the need for an AC drive motor on either side 
+of the transfer.
+QUIET ROLLERS & BELTED SECTIONS
+Dematic MCS is available with quiet rollers and belted 
+conveying surfaces. Rollers feature double spring action, 
+plastic coated axles, and precision sealed-for-life bearings.
+High strength, one piece vulcanized belting is used in 
+zone segments to allow precise carton control or for 
+applications that accommodate light weight or poly 
+bagged items. The segmented belt conveyor, driven by 
+motor driven rollers, features automatic tracking and 
+tensioning.
+ELECTRONIC SENSING
+Dematic MCS uses electronic sensing devices for load 
+detection. Zone boundaries are determined with electronic 
+sensors and reflectors. A standardized set of parts make 
+up the assembly: sensor, reflector, protective housing, 
+cabling and mounting components. The sensor and 
+reflector housings offer multiple mounting angles.
+Increase Operational Flexibility
+CREATE A LAYOUT WITH MORE OPTIONS
+Motorized roller conveyor
+Integration with scanners
+Cover on side channel protects electronic sensor
+4
+MODULAR ARCHITECTURE
+We designed Dematic MCS from the ground up to 
+increase operational flexibility. As business changes, users 
+can make changes to their conveyor system and not 
+have to start over with an all new conveyor network. To 
+accommodate change, MCS conveyor uses a universal 
+side channel as the backbone for all the conveyor models. 
+Therefore, MCS gives you the ability to “drop-in” new 
+conveyor modules, re-configure the modules, or add 
+new modules. Also, the global metric design of MCS 
+uses common components throughout, which simplifies 
+maintenance support and reduces your spare parts 
+inventory. 
+Standard control modules, connected using CAN Bus, 
+are utilized to operate the conveyor network. Motor 
+driven rollers operate using standard motor controllers; 
+parameters such as conveyor speed, accumulation mode, 
+and sleep mode are adjustable. These parameters and 
+others can be adjusted using local or central controls.
+MODULAR FUNCTIONALITY
+Dematic MCS gives you the ability to change the function 
+of a conveyor module without having to change out 
+entire conveyor sections. For example, a section of roller 
+conveyor can be converted to belt surface conveyor. 
+Transportation conveyor can be changed to accumulation 
+or visa-versa. A right angle transfer can be inserted 
+into a section of accumulation conveyor. These types 
+of modifications can be made without removing and 
+replacing sections of conveyor. Instead, by utilizing many 
+of the existing components and using the same side 
+channel foundation, new system functionality is created 
+faster and at a lower cost.
+MODULAR COMPONENTS
+Users can realize the benefits of standardization and 
+common conveyor components. The same rollers, motor 
+driven rollers, segmented belts, side frames, electronic 
+sensors, motor controls, zone control logic assemblies, 
+drive belts, etc. are used throughout all the modules. 
+This standardization creates a smaller inventory of parts 
+to manage and allows greater flexibility when future 
+reconfiguration is required.
+Modular By:
+ARCHITECTURE, FUNCTION, COMPONENT
+TOP 10 ATTRIBUTES:
+• Hight speed and throughput 
+• Conveys more load types
+• Excellent carton control
+• Universal side frame for all models
+• Easy to change functions
+• Common parts reduces parts inventory
+• AC & DC drive motor options
+• Uses fewer AC drives
+• Set parameters with modular controls
+• Energy efficient, quiet operating
+5
+Plastic totes are conveyed and transferred using motor driven rollers Segmented belt on roller accommodates apparel in poly bag
+Embedded Conveyor Controller (ECC) controls the operation of motorized roller 
+conveyor
+Segmented Belt on Rollers
+  Accumulate horizontally and on inclines and declines
+  Accommodates small light weight items, poly bags
+  One piece mechanically-laced belt for faster belt replacement
+  Automatic tracking & tensioning belts
+  Non contact accumulation on belts
+  Minimize jams, side by sides
+Low Voltage Motor Driven Rollers
+  Brushless, gearless, direct drive motors
+  Powerful 24 & 48 volts, DC, variable speed, efficient
+  Integrate with AC drives (long runs, inclines)
+  Mult-mode: sleep, dynamic, zero pressure
+  Quiet operation, electronic sensing
+  Monitor motor amp draw and temperature
+CAN Bus Connectivity
+  Adjust parameters from central location
+  Dynamic carton gapping
+  Adjust speed, mode
+  Diagnostics
+  Flat media cable, DeviceNet tap
+  Onboard controls
+  Removable HMI interface module
+6
+Transportation conveyors maximize material flow by 
+actively controlling spacing and accumulation, and 
+enabling vertical or inclined movement. Dematic designs 
+all power conveyor components, including transportation 
+and accumulation conveyors, directional change 
+equipment, and sortation devices and controls.
+Roller Transportation (Model: 9165)
+• AC drive, with narrow belt tape drive media
+• Economical where no accumulation is required
+• Can be used as transport between divert modules
+Live Roller Curves and Junctions (Model: 9190)
+• AC drive, v-belt drive media
+• General purpose curve and junction conveyor with 
+high speed capability
+Roller Transportation Conveyor
+Guard rail with optional side cover
+7
+BELT TRANSPORTATION CONVEYOR
+Dematic MCS lets you handle a wide variety of items 
+– from packages, cartons, cases to tote boxes, trays, 
+stuffed envelopes or poly bags. With an all belt surface, 
+you can handle both large and small items simultaneously. 
+Even many irregularly shaped, difficult to convey items can 
+be handled with precision. So you get more throughput, 
+more flexibility and more productivity.
+Belt on roller (Model: 9410)
+• AC drive
+• Horizontal or incline/decline applications 
+Belt on slider bed (Model: 9405)
+• AC drive
+• Horizontal or incline/decline applications
+• Case pick applications
+Tote on belt transportation conveyor
+Low profile drive is designed for compact mounting (underside view)
+SCALABLE DRIVE PLATFORM
+• Standard profile, high performance for high-rate 
+applications
+• Compact drive with medium performance level 
+optimized for the application
+• High efficiency reducer (>95% efficient)
+• For roller and belt accumulation and transportation 
+• Drive configurations: charge end or mid
+8
+Motorized roller conveyor is designed to transport and 
+accumulate cartons and totes over a wide variety of 
+applications including transfers, curves and inclines. 
+Motorized rollers allow for “on demand” operation, only 
+powering the rollers or zones when cartons are present. 
+This makes operation more efficient and saves energy. It is 
+offered in 24VDC and 48VDC.
+Straight O-ring Driven Roller (Model: 8100)
+• Motorized roller drive
+• Economical vs. 9265 for applications 
+< 60ft (18.29 m)
+• One item per zone accumulation improves package 
+control
+Curved O-ring Driven Roller (Model: 8120)
+• Motorized roller drive
+• Tapered plastic roller sleeves
+Motorized Roller Conveyors
+Motorized roller conveyor accommodates plastic totes
+ODR Skewed (Model: 8130)
+• Motorized roller drive
+• Use for compact edge alignment
+Narrow Belt Driven Roller (Model: 8240)
+• Motorized roller driven tape drive below roller 
+surface
+• 30 degree merge and take-away
+Straight Segmented Belt on Roller (Model: 8300) 
+• Motorized roller drive
+• Best package control and conveyable variety
+Curved Segmented Belt on Roller (Model: 8320)
+• Motorized roller driven tape drive below roller 
+surface
+• 30 degree merge and take-away
+9
+Accumulation conveyors are used to temporarily stop, 
+hold, and release material, a common requirement in both 
+manufacturing and warehousing material handling systems. 
+The Dematic accumulation conveyors were the first power 
+conveyors to allow material accumulation along a line 
+without pressure buildup. Dematic has multiple models: 
+• Contacting accumulation for higher throughput
+• Non-contacting accumulation for discrete package 
+control, when fragile contents or controlled delivery 
+to operators or other equipment is needed
+Roller Contacting Accumulation (Model: 9265)
+• AC drive, with narrow belt drive media
+• Electronic sensing options
+• Available with Segmented Belts in each 
+zone for improved package control
+Roller Non-Contacting Accumulation (Model: 9365)
+• AC drive, with narrow belt drive media
+• Each accumulation zone includes positive roller 
+braking
+• Can be used in slight accumulating decline 
+applications
+Accumulating Conveyor
+Accumulating with proximity sensor
+Accumulating conveyor with electronic sensing
+Narrow belt driven (under side looking up)
+10
+Right Angle Transfer (Model: 2497) and 
+High-Speed Right Angle Transfer (Model: 2498)
+• Motorized roller drive for transfer rollers
+• Transport rollers can be driven via MDR or 
+associated conveyor drive belt
+• Pneumatic lift mechanism
+• Available in Standard, and High Performance (small 
+item) versions
+• Bi-directional diverting
+• Up to 50 items per minute capability
+Steerable Wheel Divert (Model: 2465)
+• Motorized roller drive for wheels
+• Pneumatic rotary actuator to turn wheels for 
+diverting
+• One-sided diverting only at this time
+• Up to 80 items per minute capability
+Positive Belt Diverter (Model: 2468)
+• Pneumatic lift mechanism
+• Powered belt faces rise into package flow for 
+diverting
+• One or two belts used depending on width of 
+conveyor to reduce minimum gap requirements and 
+maximize rate
+• One-sided diverting only
+• Up to 65 items per minute capability
+Diverters
+Steerable wheel diverter
+Right angle transfer
+Positive belt diverter
+11
+Brake Belt (Model: 2325)
+• AC drive
+• General purpose belt for controlling flow
+Meter Belt (Model: 2330)
+• AC drive
+• General purpose belt for controlling 
+and metering package flow
+Segmented Belt on Roller, SBOR (Model: 8300)
+• Motorized roller drive
+• A two zone unit with a Dual Motor Controller
+• Cost effective and simple metering device
+Gapping Units (Models: 2335 & 2350)
+• For sorter induction
+• Very low maintenance and fast MTTR
+• Operates with FlexSort PC controller
+• PLC controlled version
+• Available with 4, 6, or 8 belts
+• Each belt driven by a high efficiency motor and VFD
+Gapping Devices
+High rate gapping unit
+Carton Singulators (Model: 9167)
+• Aligns “side-by-side” cartons
+• Creates proper orientation prior to sorting
+• For new or existing systems
+Carton Alignment
+The singulator improves downstream merge and sorter performance
+DEMATIC.COM
+Order-No. NA_BR-1039 | Printed in USA 12/18
