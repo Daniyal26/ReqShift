@@ -57,12 +57,6 @@ export function HomePage() {
             <div className="evidence-foot"><span>AI drafts</span><span>Audit checks</span><span>Solver proves</span></div>
           </aside>
         </div>
-        <div className="ticker" aria-hidden="true">
-          <div className="ticker-track">
-            <span>Quantities <b>•</b> Limits <b>•</b> Dependencies <b>•</b> Units <b>•</b> Interlocks <b>•</b> Ranges <b>•</b> Evidence <b>•</b></span>
-            <span>Quantities <b>•</b> Limits <b>•</b> Dependencies <b>•</b> Units <b>•</b> Interlocks <b>•</b> Ranges <b>•</b> Evidence <b>•</b></span>
-          </div>
-        </div>
       </section>
 
       <ProductShowcase />
