@@ -1,66 +1,6 @@
-import { useRef, useState } from 'react'
-import {
-  DemoPlayer,
-  FindingArticle,
-  FindingDetails,
-  NavLink,
-  PageHero,
-  StepChip,
-} from '../components.jsx'
-
-function ContactForm() {
-  const nameRef = useRef(null)
-  const emailRef = useRef(null)
-  const messageRef = useRef(null)
-  const okRef = useRef(null)
-  const [emailError, setEmailError] = useState(false)
-  const [sent, setSent] = useState(false)
-
-  const submit = (event) => {
-    event.preventDefault()
-    setEmailError(false)
-    setSent(false)
-    const email = emailRef.current?.value.trim() || ''
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setEmailError(true)
-      emailRef.current?.focus()
-      return
-    }
-    const name = nameRef.current?.value.trim() || ''
-    const message = messageRef.current?.value.trim() || ''
-    if (!name || message.length < 10) return
-    setSent(true)
-    window.requestAnimationFrame(() => {
-      okRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    })
-  }
-
-  return (
-    <form className="card" onSubmit={submit} noValidate>
-      <div ref={okRef} className={`alert alert-ok${sent ? ' show' : ''}`} role="status" aria-live="polite">
-        Looks good. In production this sends from the server. This preview does not send it.
-      </div>
-      <div className="fieldf">
-        <label htmlFor="cName">Name</label>
-        <input className="input" id="cName" ref={nameRef} required />
-      </div>
-      <div className="fieldf">
-        <label htmlFor="cEmail">Email</label>
-        <input className="input" id="cEmail" ref={emailRef} type="email" required />
-        <div className={`err${emailError ? ' show' : ''}`} role="alert">Enter a valid email.</div>
-      </div>
-      <div className="fieldf">
-        <label htmlFor="cCo">Company</label>
-        <input className="input" id="cCo" />
-      </div>
-      <div className="fieldf">
-        <label htmlFor="cMsg">Message</label>
-        <textarea id="cMsg" ref={messageRef} required />
-      </div>
-      <button className="btn btn-primary btn-lg" type="submit">Send</button>
-    </form>
-  )
-}
+import { useState } from 'react'
+import { DemoPlayer, NavLink, PageHero, ProductShowcase, StepChip } from '../components.jsx'
+import { LiveExampleStrip } from './Analyze.jsx'
 
 export function HomePage() {
   return (
@@ -72,10 +12,10 @@ export function HomePage() {
             <h1>Your spec might be <span className="mark">missing something</span> important.</h1>
             <p className="lede">Upload a spec. We flag what is missing and check which setups can work.</p>
             <div className="hero-actions">
-              <NavLink to="signup" className="btn btn-primary btn-lg">
-                Get a gap report <span className="arr">→</span>
+              <NavLink to="analyze" className="btn btn-primary btn-lg">
+                Run a real analysis <span className="arr">→</span>
               </NavLink>
-              <NavLink to="how" className="btn btn-secondary btn-lg">Watch how it works</NavLink>
+              <NavLink to="how" className="btn btn-text btn-lg">Watch how it works <span className="arr">→</span></NavLink>
             </div>
             <div className="hero-points">
               <span className="point"><i aria-hidden="true" /> PDF or text</span>
@@ -83,51 +23,35 @@ export function HomePage() {
               <span className="point"><i aria-hidden="true" /> You approve the model</span>
             </div>
           </div>
-          <div className="preview reveal in d1" aria-label="Animated preview of a gap report">
-            <div className="preview-chrome">
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <div className="dots"><span /><span /><span /></div>
-                <span className="file">batch mixer spec.pdf</span>
-              </div>
-              <span className="pill pill-synth"><span className="live-dot" /> Synthetic example</span>
+          <aside className="hero-evidence reveal in d1" aria-label="Synthetic gap report summary">
+            <div className="evidence-head">
+              <span className="pill pill-synth"><span className="live-dot" /> Synthetic report</span>
+              <span className="evidence-file">batch mixer spec.pdf</span>
             </div>
-            <div className="flow">
-              <span>Document</span><span className="flow-line" />
-              <span>Model</span><span className="flow-line" />
-              <span className="on">Gap report</span>
+            <div className="evidence-score">
+              <span className="evidence-score-num">7</span>
+              <span className="evidence-score-copy"><b>gaps found</b><small>with page-linked quotes</small></span>
+              <span className="evidence-ring" aria-hidden="true"><i>58%</i></span>
             </div>
-            <div className="panes">
-              <div className="pane">
-                <div className="scanbeam" />
-                <h4>Source</h4>
-                <p className="doc"><span className="pg">p2</span>The vessel is rated for <span className="hl">normal process operation</span>.</p>
-                <p className="doc"><span className="pg">p4</span>The impeller shall run during mixing.</p>
-                <p className="doc"><span className="pg">p6</span><span className="hl b">Heating is available</span> to hold temperature.</p>
-                <p className="doc"><span className="pg">p6</span>A level transmitter is fitted.</p>
-                <p className="doc"><span className="pg">p9</span>See Appendix B for layout.</p>
+            <div className="evidence-list">
+              <div className="evidence-row high">
+                <span className="evidence-rail" />
+                <span className="evidence-copy"><b>Max pressure missing</b><small>p. 2 · no value or unit</small></span>
+                <em>High</em>
               </div>
-              <div className="pane">
-                <h4>Model</h4>
-                <div className="mrow"><span className="k">Vessel</span><span className="v">2000 L</span></div>
-                <div className="mrow miss"><span className="k">Max pressure</span><span className="v">not stated</span></div>
-                <div className="mrow miss"><span className="k">Impeller speed</span><span className="v">not stated</span></div>
-                <div className="mrow prop"><span className="k">Ambient</span><span className="v">AI idea <span className="blink">|</span></span></div>
+              <div className="evidence-row med">
+                <span className="evidence-rail" />
+                <span className="evidence-copy"><b>Heater rule unclear</b><small>p. 6 · level limit not stated</small></span>
+                <em>Medium</em>
               </div>
-              <div className="pane">
-                <h4>Start here</h4>
-                <div className="fmini">
-                  <div className="t">Max vessel pressure missing</div>
-                  <div className="m">Relief and interlocks cannot be checked yet.</div>
-                  <div className="meta"><span className="pill pill-high">High</span><span className="pill pill-med">Not stated</span></div>
-                </div>
-                <div className="fmini med">
-                  <div className="t">Heater and level rule unclear</div>
-                  <div className="m">Dry fire protection is not written down.</div>
-                  <div className="meta"><span className="pill pill-med">Medium</span><span className="pill pill-med">Unclear</span></div>
-                </div>
+              <div className="evidence-row ai">
+                <span className="evidence-rail" />
+                <span className="evidence-copy"><b>Ambient range proposed</b><small>AI idea · not in source</small></span>
+                <em>Review</em>
               </div>
             </div>
-          </div>
+            <div className="evidence-foot"><span className="evidence-foot-dot" /> AI drafts. You approve. Solver checks.</div>
+          </aside>
         </div>
         <div className="ticker" aria-hidden="true">
           <div className="ticker-track">
@@ -136,6 +60,8 @@ export function HomePage() {
           </div>
         </div>
       </section>
+
+      <ProductShowcase />
 
       <section className="block alt" id="product">
         <div className="wrap">
@@ -218,56 +144,26 @@ export function HomePage() {
       <section className="block">
         <div className="wrap">
           <div className="sec-head reveal">
-            <div className="eyebrow">Sample</div>
-            <h2>Gaps, with evidence.</h2>
-            <p>From a fictional mixer spec. For demo only.</p>
+            <div className="eyebrow">Real examples</div>
+            <h2>Start with a real specification.</h2>
+            <p>These files come from the backend. Pick one and it opens in the live workspace.</p>
           </div>
-          <div className="report reveal">
-            <div className="report-bar">
-              <div>
-                <strong>Batch mixer control spec</strong>
-                <div><span>Rev 0.3 · Synthetic example</span></div>
-              </div>
-              <NavLink to="sample" className="btn btn-secondary btn-sm">Open full sample</NavLink>
-            </div>
-            <div className="findings">
-              <div className="label">Start here</div>
-              <FindingArticle
-                title="Max vessel pressure is missing"
-                pill="High"
-                pillClass="pill-high"
-                body="No bound, no unit. Relief sizing cannot be checked."
-                quote="The vessel is rated for normal process operation. p. 2"
-                ask="What is the max pressure, and in what units?"
-                askLabel="Ask the engineer"
-              />
-              <FindingArticle
-                variant="med"
-                title="Heater and level rule is unclear"
-                pill="Medium"
-                pillClass="pill-med"
-                body="It may be assumed, but it is not written as a rule."
-                quote="Heating is available to maintain batch temperature. p. 6"
-                ask="Should heating stop below a set level?"
-                askLabel="Ask the engineer"
-              />
-            </div>
-          </div>
+          <LiveExampleStrip />
         </div>
       </section>
 
       <section className="block alt">
         <div className="wrap sec-grid">
           <div className="reveal">
-            <div className="eyebrow">Security</div>
-            <h2 style={{ fontSize: 'clamp(1.65rem,3vw,2.1rem)' }}>Your spec stays private.</h2>
-            <p style={{ color: 'var(--ink2)', marginTop: 10 }}>Docs belong to your account. No anonymous uploads. No public demo with your file.</p>
-            <p style={{ marginTop: 14 }}><NavLink to="security">How docs are handled →</NavLink></p>
+            <div className="eyebrow">Handling</div>
+            <h2 style={{ fontSize: 'clamp(1.65rem,3vw,2.1rem)' }}>The text goes to the backend, not the browser.</h2>
+            <p style={{ color: 'var(--ink2)', marginTop: 10 }}>No account is needed for this workspace. Jobs live in server memory and are written to disk only when you choose to save a report.</p>
+            <p style={{ marginTop: 14 }}><NavLink to="security">How documents are handled →</NavLink></p>
           </div>
           <ul className="seclist reveal d1">
-            <li><span className="tick">✓</span>Private storage. Time limited download links.</li>
-            <li><span className="tick">✓</span>AI runs on the server. Keys stay off the browser.</li>
-            <li><span className="tick">✓</span>You can delete your docs.</li>
+            <li><span className="tick">✓</span>PDFs and text are read by the local backend.</li>
+            <li><span className="tick">✓</span>Extraction credentials stay off the browser.</li>
+            <li><span className="tick">✓</span>Job state is in memory until you save a report.</li>
             <li><span className="tick">✓</span>No certification claims we cannot back up.</li>
           </ul>
         </div>
@@ -278,8 +174,8 @@ export function HomePage() {
           <h2>Find the gaps before you build.</h2>
           <p>Upload. Review the evidence. Fix the model. Run the checks.</p>
           <div className="actions">
-            <NavLink to="signup" className="btn btn-white btn-lg">Get a gap report</NavLink>
-            <NavLink to="how" className="btn btn-outline-w btn-lg">Watch the demos</NavLink>
+            <NavLink to="analyze" className="btn btn-white btn-lg">Run a gap report</NavLink>
+            <NavLink to="how" className="btn btn-outline-w btn-lg">See how it works</NavLink>
           </div>
         </div>
       </section>
@@ -480,97 +376,11 @@ export function HowPage() {
 
           <p className="callout reveal">Solver output does not certify the original spec. It only checks the model you approved.</p>
           <div style={{ marginTop: 22, display: 'flex', gap: 10, flexWrap: 'wrap' }} className="reveal">
-            <NavLink to="signup" className="btn btn-primary">Get a gap report</NavLink>
-            <NavLink to="sample" className="btn btn-secondary">See a sample report</NavLink>
+            <NavLink to="analyze" className="btn btn-primary">Run a real analysis</NavLink>
+            <NavLink to="analyze" className="btn btn-secondary">Browse real examples</NavLink>
           </div>
         </div>
       </section>
-    </>
-  )
-}
-
-export function SamplePage() {
-  return (
-    <>
-      <PageHero eyebrow="Sample report" title="A synthetic gap report.">
-        <p>Fictional mixer spec. Not a customer doc. Not a real plant.</p>
-      </PageHero>
-      <div className="wrap report-layout">
-        <aside className="side">
-          <h3>Report</h3>
-          <div className="meta"><span>Doc</span><strong>Synthetic</strong></div>
-          <div className="meta"><span>Title</span><strong>Mixer spec</strong></div>
-          <div className="meta"><span>Version</span><strong>Rev 0.3</strong></div>
-          <div className="meta"><span>Method</span><strong>Extract, then audit</strong></div>
-          <h3 style={{ marginTop: 16 }}>Types</h3>
-          <div className="legend">
-            <div><i style={{ background: 'var(--red)' }} />Not stated</div>
-            <div><i style={{ background: 'var(--amber)' }} />Unclear</div>
-            <div><i style={{ background: 'var(--violet)' }} />AI proposed</div>
-            <div><i style={{ background: 'var(--green)' }} />Found in source</div>
-            <div><i style={{ background: 'var(--ink3)' }} />Cannot analyse</div>
-          </div>
-        </aside>
-        <div>
-          <div className="banner">Synthetic example. Do not use this as a real safety or design check.</div>
-          <div className="label">Start here</div>
-          <FindingArticle
-            title="Max vessel pressure is missing"
-            pill="High"
-            pillClass="pill-high"
-            body="Relief and interlocks need a number and a unit."
-            quote="The vessel is rated for normal process operation. p. 2"
-            ask="What is the max pressure, and in what units?"
-          />
-          <FindingArticle
-            title="Impeller speed is not given"
-            pill="High"
-            pillClass="pill-high"
-            body="Run during mixing is not a speed range."
-            quote="The impeller shall operate continuously during mixing. p. 4"
-            ask="What rpm range is allowed?"
-          />
-          <FindingArticle
-            variant="med"
-            title="Heater and level rule is unclear"
-            pill="Medium"
-            pillClass="pill-med"
-            body="Dry fire protection is not written as a rule."
-            quote="Heating is available to maintain batch temperature. p. 6"
-            ask="Should heating stop below a set level?"
-          />
-          <h2 style={{ fontSize: 18, margin: '24px 0 10px' }}>All findings</h2>
-          <FindingDetails
-            variant="ai"
-            title="Ambient range was AI proposed"
-            pill="AI idea"
-            pillClass="pill-ai"
-            body="5 to 40 C was drafted. It is not in the source."
-            quote="No matching sentence in the source."
-            ask="Confirm or replace this range."
-          />
-          <FindingDetails
-            variant="none"
-            title="Appendix B is missing"
-            pill="Cannot analyse"
-            pillClass="pill-info"
-            body="Nozzle layout cannot be checked without it."
-            quote="See Appendix B for nozzle layout. p. 9"
-          />
-          <FindingDetails
-            variant="low"
-            title="Vessel volume is stated"
-            pill="In source"
-            pillClass="pill-ok"
-            body="2000 L is clear. Shown so gaps stand out."
-            quote="The working volume is 2000 litres. p. 2"
-          />
-          <div className="card" style={{ marginTop: 18 }}>
-            <h3 style={{ marginTop: 0 }}>Method and limits</h3>
-            <p>AI drafts. Audit compares to source. No solver was run for this sample. This does not prove a spec is correct.</p>
-          </div>
-        </div>
-      </div>
     </>
   )
 }
@@ -583,16 +393,14 @@ export function SecurityPage() {
       </PageHero>
       <section className="block" style={{ paddingTop: 10 }}>
         <div className="wrap prose">
-          <h2>Ownership</h2>
-          <p>Docs sit under your account. Other accounts cannot see or run them.</p>
-          <h2>Storage</h2>
-          <p>Private storage. Downloads use short lived links. Traffic is encrypted in transit.</p>
-          <h2>AI processing</h2>
-          <p>Extraction runs on the server with the Anthropic API. Keys never go to the browser. Doc text is sent to that provider to do the work.</p>
-          <h2>Logs</h2>
-          <p>Error logs should not contain doc contents.</p>
-          <h2>Deletion</h2>
-          <p>You can delete docs you own. Linked analysis goes with them under the service rules.</p>
+          <h2>Accounts</h2>
+          <p>There is no sign-in in this workspace. The live analysis flow does not store user accounts.</p>
+          <h2>Where the text goes</h2>
+          <p>The browser sends requirement text to the local Python backend. PDFs are decoded there. Extraction credentials stay on the backend.</p>
+          <h2>Job state</h2>
+          <p>Running jobs live in server memory. Results stay there until the server restarts, unless you choose to save a report.</p>
+          <h2>Saving</h2>
+          <p>The save button writes the model, trace and report to the backend output folder. Nothing is saved without that action.</p>
           <h2>What we do not claim</h2>
           <p>No GDPR, ISO or SOC claims here. Those need proof from the live system and legal review.</p>
         </div>
@@ -613,13 +421,13 @@ export function PricingPage() {
             <h3 style={{ fontSize: 21, marginTop: 0 }}>Pilot</h3>
             <p>For teams who want gap reports they can review and act on.</p>
             <ul className="check">
-              <li>Private workspace</li>
-              <li>Gap reports with quotes</li>
+              <li>Real gap reports from the backend</li>
+              <li>Quotes from the source document</li>
               <li>Model review and rerun</li>
               <li>Solver runs, engine labelled</li>
-              <li>PDF export</li>
+              <li>Saved reports written on request</li>
             </ul>
-            <NavLink to="contact" className="btn btn-primary btn-lg">Request a pilot</NavLink>
+            <NavLink to="analyze" className="btn btn-primary btn-lg">Open the workspace</NavLink>
           </article>
         </div>
       </section>
@@ -646,21 +454,6 @@ export function AboutPage() {
   )
 }
 
-export function ContactPage() {
-  return (
-    <>
-      <PageHero eyebrow="Contact" title="Request a pilot.">
-        <p>Short form. This preview checks it locally only.</p>
-      </PageHero>
-      <section className="block" style={{ paddingTop: 12 }}>
-        <div className="wrap" style={{ maxWidth: 540 }}>
-          <ContactForm />
-        </div>
-      </section>
-    </>
-  )
-}
-
 export function PrivacyPage() {
   return (
     <>
@@ -669,13 +462,13 @@ export function PrivacyPage() {
       </PageHero>
       <section className="block" style={{ paddingTop: 10 }}>
         <div className="wrap prose">
-          <p>We process account details and docs you upload to run gap checks and solver jobs.</p>
-          <h2>Docs</h2>
-          <p>Stored privately under your account. Sent to the AI provider for extraction. You can delete them.</p>
-          <h2>Account</h2>
-          <p>Email and password, or Google sign in where set up. Reset and verify flows included.</p>
-          <h2>Questions</h2>
-          <p>Use the contact form.</p>
+          <p>The workspace processes the requirement text you choose to analyse. It does not ask for an account.</p>
+          <h2>Documents</h2>
+          <p>The text is sent to the local backend and, during extraction, to the configured AI provider. Job results are held in server memory.</p>
+          <h2>Saved reports</h2>
+          <p>Reports are written to the backend output folder only when you press the save button.</p>
+          <h2>Accounts</h2>
+          <p>No account, password, reset or email verification flow is part of this workspace.</p>
         </div>
       </section>
     </>

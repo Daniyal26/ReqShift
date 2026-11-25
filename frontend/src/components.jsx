@@ -50,12 +50,12 @@ export function Header({ menuOpen, onToggleMenu, scrolled }) {
           <nav className="nav-links" aria-label="Primary">
             <NavLink to="home" extra="product">Product</NavLink>
             <NavLink to="how">How it works</NavLink>
-            <NavLink to="sample">Sample report</NavLink>
+            <NavLink to="analyze">Live analysis</NavLink>
             <NavLink to="security">Security</NavLink>
           </nav>
           <div className="nav-cta">
-            <NavLink to="login" className="btn btn-ghost">Sign in</NavLink>
-            <NavLink to="signup" className="btn btn-primary">Get a gap report</NavLink>
+            <NavLink to="analyze" className="btn btn-ghost btn-sm">Examples</NavLink>
+            <NavLink to="analyze" className="btn btn-primary btn-sm">Run analysis</NavLink>
             <button
               className="menu-btn"
               id="menuBtn"
@@ -75,14 +75,13 @@ export function Header({ menuOpen, onToggleMenu, scrolled }) {
       <div className={`mobile-nav${menuOpen ? ' open' : ''}`} id="mobileNav" hidden={!menuOpen}>
         <NavLink to="home">Product</NavLink>
         <NavLink to="how">How it works</NavLink>
-        <NavLink to="sample">Sample report</NavLink>
+        <NavLink to="analyze">Live analysis</NavLink>
         <NavLink to="security">Security</NavLink>
         <NavLink to="pricing">Pilot</NavLink>
         <NavLink to="about">About</NavLink>
-        <NavLink to="contact">Contact</NavLink>
         <div className="mcta">
-          <NavLink to="login" className="btn btn-secondary btn-full">Sign in</NavLink>
-          <NavLink to="signup" className="btn btn-primary btn-full">Get a gap report</NavLink>
+          <NavLink to="analyze" className="btn btn-secondary btn-full">Browse examples</NavLink>
+          <NavLink to="analyze" className="btn btn-primary btn-full">Run analysis</NavLink>
         </div>
       </div>
     </>
@@ -108,7 +107,7 @@ export function Footer() {
             <h4>Product</h4>
             <ul>
               <li><NavLink to="how">How it works</NavLink></li>
-              <li><NavLink to="sample">Sample report</NavLink></li>
+              <li><NavLink to="analyze">Live analysis</NavLink></li>
               <li><NavLink to="security">Security</NavLink></li>
               <li><NavLink to="pricing">Pilot</NavLink></li>
             </ul>
@@ -117,7 +116,6 @@ export function Footer() {
             <h4>Company</h4>
             <ul>
               <li><NavLink to="about">About</NavLink></li>
-              <li><NavLink to="contact">Contact</NavLink></li>
             </ul>
           </div>
           <div>
@@ -239,30 +237,149 @@ export function DemoPlayer({ title, caption, note, paused, onToggle, children })
   )
 }
 
-export function PasswordInput({ id, label, value, onChange }) {
-  const [visible, setVisible] = useState(false)
+export function ProductShowcase() {
+  const sectionRef = useRef(null)
+  const frameRef = useRef(null)
+  const [frameWidth, setFrameWidth] = useState(1120)
+  const [inView, setInView] = useState(true)
+
+  useEffect(() => {
+    const frame = frameRef.current
+    if (!frame) return undefined
+    const update = () => setFrameWidth(frame.clientWidth || 1120)
+    update()
+    if (!('ResizeObserver' in window)) {
+      window.addEventListener('resize', update)
+      return () => window.removeEventListener('resize', update)
+    }
+    const observer = new ResizeObserver(update)
+    observer.observe(frame)
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    const section = sectionRef.current
+    if (!section || !('IntersectionObserver' in window)) return undefined
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.05 })
+    observer.observe(section)
+    return () => observer.disconnect()
+  }, [])
+
+  const mobile = frameWidth < 560
+  const compact = frameWidth < 720
+  const canvasWidth = compact ? 860 : 1120
+  const scale = frameWidth / canvasWidth
 
   return (
-    <div className="fieldf">
-      <label htmlFor={id}>{label}</label>
-      <div className="pw">
-        <input
-          className="input"
-          id={id}
-          type={visible ? 'text' : 'password'}
-          value={value}
-          onChange={onChange}
-          required
-        />
-        <button
-          className="pwt"
-          type="button"
-          aria-label={visible ? `Hide ${label}` : `Show ${label}`}
-          onClick={() => setVisible((value) => !value)}
-        >
-          {visible ? 'Hide' : 'Show'}
-        </button>
+    <section ref={sectionRef} className={`showcase${inView ? '' : ' paused'}`} aria-label="Animated ReqShift product preview">
+      <div className="showcase-backdrop" aria-hidden="true" />
+      <div className="showcase-frame" ref={frameRef} style={mobile ? undefined : { height: `${630 * scale}px` }}>
+        {mobile ? (
+          <div className="showcase-mobile" aria-hidden="true">
+            <div className="showcase-mobile-head">
+              <span className="showcase-mark" />
+              <span><b>ReqShift</b><small>Synthetic workspace</small></span>
+              <span className="showcase-export">Report</span>
+            </div>
+            <div className="showcase-mobile-title">Find the gaps, then check what works.</div>
+            <div className="showcase-mobile-stats">
+              <div><b>7</b><small>Gaps found</small></div>
+              <div><b>12</b><small>Quotes linked</small></div>
+              <div><b>16</b><small>Setups tried</small></div>
+            </div>
+            <div className="showcase-mobile-row high"><span>Max pressure missing</span><em>High</em></div>
+            <div className="showcase-mobile-row med"><span>Heater rule unclear</span><em>Medium</em></div>
+            <div className="showcase-mobile-row ai"><span>Ambient range proposed</span><em>Review</em></div>
+          </div>
+        ) : (
+          <div
+            className={`showcase-canvas showcase-run${compact ? ' compact' : ''}`}
+            style={{ width: canvasWidth, transform: `scale(${scale})` }}
+            aria-hidden="true"
+          >
+          <aside className="showcase-sidebar">
+            <div className="showcase-brand"><span className="showcase-mark" />{!compact && <b>ReqShift</b>}</div>
+            {!compact && (
+              <div className="showcase-account">
+                <span>Batch mixer spec</span>
+                <small>Rev 0.3 · 12 pages</small>
+              </div>
+            )}
+            <div className="showcase-nav">
+              <span className="active"><i className="showcase-ico ico-home" />{!compact && 'Overview'}</span>
+              <span><i className="showcase-ico ico-doc" />{!compact && 'Documents'}</span>
+              <span><i className="showcase-ico ico-grid" />{!compact && 'Model'}</span>
+              <span><i className="showcase-ico ico-check" />{!compact && 'Solver'}</span>
+            </div>
+            {!compact && <div className="showcase-sidefoot">Synthetic workspace</div>}
+          </aside>
+          <main className="showcase-main">
+            <div className="showcase-topbar">
+              <div className="showcase-crumb">Batch mixer spec <span>/</span> Overview</div>
+              <div className="showcase-tools"><span className="showcase-search" /><span className="showcase-bell" /></div>
+            </div>
+            <div className="showcase-content">
+              <div className="showcase-heading">
+                <div>
+                  <small>Requirement review</small>
+                  <h3>Find the gaps, then check what works.</h3>
+                </div>
+                <span className="showcase-export">Export gap report</span>
+              </div>
+              <div className="showcase-stats">
+                <div className="showcase-stat"><small>Gaps found</small><b>7</b><span className="showcase-trend">3 high</span></div>
+                <div className="showcase-stat"><small>Quotes linked</small><b>12</b><span>Every finding traced</span></div>
+                <div className="showcase-stat"><small>Model fields</small><b>24</b><span>18 approved</span></div>
+                <div className="showcase-stat"><small>Setups tried</small><b>16</b><span className="showcase-meter"><i /></span></div>
+              </div>
+              <div className="showcase-lower">
+                <div className="showcase-card">
+                  <div className="showcase-cardhead"><b>Gaps with evidence</b><span>Source linked</span></div>
+                  <div className="showcase-reportrow showcase-seq1">
+                    <span className="showcase-spin" />
+                    <span><b>Reading page 2</b><small>Checking vessel pressure wording</small></span>
+                  </div>
+                  <div className="showcase-reportrow showcase-seq2">
+                    <span className="showcase-tick" />
+                    <span><b>Max pressure missing</b><small>p. 2 · No value or unit</small></span>
+                    <em className="high">High</em>
+                  </div>
+                  <div className="showcase-reportrow showcase-seq3">
+                    <span className="showcase-tick" />
+                    <span><b>Heater rule unclear</b><small>p. 6 · Level limit not stated</small></span>
+                    <em className="med">Medium</em>
+                  </div>
+                  <div className="showcase-reportrow showcase-seq4">
+                    <span className="showcase-tick ai" />
+                    <span><b>Ambient range proposed</b><small>AI idea · Not in source</small></span>
+                    <em className="review">Review</em>
+                  </div>
+                </div>
+                <div className="showcase-side-col">
+                  <div className="showcase-card">
+                    <div className="showcase-cardhead"><b>Model</b><span>Engineer review</span></div>
+                    <div className="showcase-field showcase-seq2"><span>Max pressure</span><b><span className="showcase-typed">6 bar</span><span className="showcase-cursor" /></b></div>
+                    <div className="showcase-field showcase-seq3"><span>Heater min level</span><b>35%</b></div>
+                    <div className="showcase-field showcase-seq4"><span>Impeller speed</span><b>120–480 rpm</b></div>
+                  </div>
+                  <div className="showcase-card">
+                    <div className="showcase-cardhead"><b>Solver</b><span>GoalShift SAT</span></div>
+                    <div className="showcase-solver">
+                      <span className="showcase-ok">2 works</span>
+                      <span className="showcase-bad">2 blocked</span>
+                      <span>1 open gap</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="showcase-scan" />
+            <div className="showcase-progress"><i /></div>
+          </main>
+          </div>
+        )}
       </div>
-    </div>
+      <div className="showcase-fade" aria-hidden="true" />
+    </section>
   )
 }

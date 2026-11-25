@@ -1,40 +1,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Footer, Header } from './components.jsx'
 import { NavigationContext, PAGE_TITLES, normalizeRoute } from './navigation.js'
+import AnalyzePage from './pages/Analyze.jsx'
 import {
   AboutPage,
-  ContactPage,
   HomePage,
   HowPage,
   PricingPage,
   PrivacyPage,
-  SamplePage,
   SecurityPage,
   TermsPage,
 } from './pages/Marketing.jsx'
-import {
-  ForgotPage,
-  LoginPage,
-  ResetPage,
-  SignupPage,
-  VerifyPage,
-} from './pages/Auth.jsx'
 
 const PAGES = {
   home: HomePage,
   how: HowPage,
-  sample: SamplePage,
+  analyze: AnalyzePage,
   security: SecurityPage,
   pricing: PricingPage,
   about: AboutPage,
-  contact: ContactPage,
   privacy: PrivacyPage,
   terms: TermsPage,
-  login: LoginPage,
-  signup: SignupPage,
-  forgot: ForgotPage,
-  reset: ResetPage,
-  verify: VerifyPage,
 }
 
 function Page({ name, section, children }) {
@@ -45,7 +31,8 @@ function Page({ name, section, children }) {
 
     if (section === 'product') {
       const timer = window.setTimeout(() => {
-        document.getElementById('product')?.scrollIntoView({ behavior: 'smooth' })
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        document.getElementById('product')?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' })
       }, 30)
       return () => window.clearTimeout(timer)
     }
@@ -149,7 +136,7 @@ export default function App() {
       />
       <main id="main">
         <Page key={route} name={route} section={section}>
-          <ActivePage />
+          <ActivePage section={section} />
         </Page>
       </main>
       <Footer />

@@ -1,25 +1,19 @@
 import { createContext, useContext } from 'react'
 
 export const PAGE_NAMES = [
-  'home', 'how', 'sample', 'security', 'pricing', 'about', 'contact',
-  'privacy', 'terms', 'login', 'signup', 'forgot', 'reset', 'verify',
+  'home', 'how', 'analyze', 'security', 'pricing', 'about',
+  'privacy', 'terms',
 ]
 
 export const PAGE_TITLES = {
   home: 'ReqShift | Find the gaps before you build',
   how: 'How it works | ReqShift',
-  sample: 'Sample report | ReqShift',
+  analyze: 'Live analysis | ReqShift',
   security: 'Security | ReqShift',
   pricing: 'Pilot | ReqShift',
   about: 'About | ReqShift',
-  contact: 'Contact | ReqShift',
   privacy: 'Privacy policy | ReqShift',
   terms: 'Terms of use | ReqShift',
-  login: 'Sign in | ReqShift',
-  signup: 'Create account | ReqShift',
-  forgot: 'Forgot password | ReqShift',
-  reset: 'Reset password | ReqShift',
-  verify: 'Verify email | ReqShift',
 }
 
 export const NavigationContext = createContext({
