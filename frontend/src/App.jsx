@@ -29,10 +29,10 @@ function Page({ name, section, children }) {
   useEffect(() => {
     document.title = PAGE_TITLES[name] || PAGE_TITLES.home
 
-    if (section === 'product') {
+    if (section) {
       const timer = window.setTimeout(() => {
         const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        document.getElementById('product')?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' })
+        document.getElementById(section)?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' })
       }, 30)
       return () => window.clearTimeout(timer)
     }

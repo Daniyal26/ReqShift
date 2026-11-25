@@ -54,7 +54,7 @@ p{margin:0}
 .reveal.d2{transition-delay:.16s}
 .reveal.d3{transition-delay:.24s}
 .reveal.in{opacity:1;transform:none}
-.hero{position:relative;overflow:hidden;padding:88px 0 52px}
+.hero{position:relative;overflow:hidden;padding:88px 0 24px}
 .hero::before{content:"";position:absolute;width:980px;height:720px;border-radius:50%;left:50%;margin-left:-490px;top:-340px;background:radial-gradient(ellipse at 50% 45%,rgba(46,175,203,.24),transparent 62%),radial-gradient(circle,#DDEEE3 0%,transparent 70%);animation:blob 10s ease-in-out infinite alternate;pointer-events:none}
 .hero::after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(26,25,22,.07) 1px,transparent 1px);background-size:22px 22px;mask-image:linear-gradient(to bottom,black,transparent 55%);pointer-events:none;opacity:.45}
 @keyframes blob{from{transform:translate(0,0) scale(1)}to{transform:translate(-36px,24px) scale(1.08)}}
@@ -65,7 +65,16 @@ p{margin:0}
 .hero-center .hero-actions{justify-content:center;gap:12px;margin-bottom:20px}
 .hero-center .hero-points{justify-content:center;gap:9px}
 .hero-center .point{font-size:12px;padding:7px 12px}
-.hero-center .btn-lg{min-height:52px;padding:0 26px;font-size:15.5px}
+.hero-center .btn-lg{min-height:52px;padding:0 26px;font-size:15.5px;border-radius:999px}
+.hero-center .btn-primary{box-shadow:0 14px 30px rgba(31,92,66,.22)}
+.hero-note{margin-top:18px;font-family:var(--mono);font-size:11.5px;letter-spacing:.03em;color:var(--ink3)}
+.hero-scroll{display:inline-flex;align-items:center;gap:8px;margin-top:26px;font-size:12.5px;font-weight:700;color:var(--forest);text-decoration:none}
+.hero-scroll:hover{color:var(--forest2);text-decoration:none}
+.hero-scroll span{font-size:16px;animation:nudge 1.8s ease-in-out infinite}
+@keyframes nudge{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
+.showcase-intro{position:relative;z-index:1;text-align:center;padding:0 20px 30px}
+.showcase-intro .eyebrow{margin-bottom:8px}
+.showcase-intro p{margin:0 auto;max-width:46ch;font-size:clamp(1.05rem,2vw,1.45rem);color:var(--ink2);font-weight:600}
 .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--forest);margin-bottom:16px}
 .hero h1{font-size:clamp(3.2rem,7.5vw,6.2rem);max-width:20ch;line-height:1.02;margin:0 auto 22px}
 .mark{position:relative}

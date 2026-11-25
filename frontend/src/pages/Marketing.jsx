@@ -22,9 +22,16 @@ export function HomePage() {
               <span className="point"><i aria-hidden="true" /> Quote for every gap</span>
               <span className="point"><i aria-hidden="true" /> You approve the model</span>
             </div>
+            <div className="hero-note">Real backend. Real examples. No sign-in.</div>
+            <NavLink to="home" extra="showcase" className="hero-scroll">See it work <span aria-hidden="true">↓</span></NavLink>
           </div>
         </div>
       </section>
+
+      <div className="showcase-intro wrap">
+        <span className="eyebrow">Inside the workspace</span>
+        <p>From document to proof, in one clean run.</p>
+      </div>
 
       <ProductShowcase />
 

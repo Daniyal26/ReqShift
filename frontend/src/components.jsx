@@ -271,7 +271,7 @@ export function ProductShowcase() {
   const scale = frameWidth / canvasWidth
 
   return (
-    <section ref={sectionRef} className={`showcase${inView ? '' : ' paused'}`} aria-label="Animated ReqShift product preview">
+    <section id="showcase" ref={sectionRef} className={`showcase${inView ? '' : ' paused'}`} aria-label="Animated ReqShift product preview">
       <div className="showcase-backdrop" aria-hidden="true" />
       <div className="showcase-frame" ref={frameRef} style={mobile ? undefined : { height: `${630 * scale}px` }}>
         {mobile ? (
