@@ -8,9 +8,9 @@ export function HomePage() {
       <section className="hero">
         <div className="wrap-wide hero-grid">
           <div className="reveal in">
-            <div className="eyebrow">Requirements analysis</div>
-            <h1>Your spec might be <span className="mark">missing something</span> important.</h1>
-            <p className="lede">Upload a spec. We flag what is missing and check which setups can work.</p>
+            <div className="eyebrow">A little clarity for messy specs</div>
+            <h1>Find what the spec <em className="serif">never says.</em></h1>
+            <p className="lede">ReqShift reads your requirements, drafts a model, and shows the gaps with evidence. No account needed.</p>
             <div className="hero-actions">
               <NavLink to="analyze" className="btn btn-primary btn-lg">
                 Run a real analysis <span className="arr">→</span>
@@ -67,7 +67,7 @@ export function HomePage() {
         <div className="wrap">
           <div className="sec-head reveal">
             <div className="eyebrow">The problem</div>
-            <h2>Specs leave things out.</h2>
+            <h2>Specs leave <em className="serif">things out.</em></h2>
             <p>Numbers, limits and rules get skipped or implied. You usually find out late.</p>
           </div>
           <div className="grid4">
@@ -83,7 +83,7 @@ export function HomePage() {
         <div className="wrap">
           <div className="sec-head reveal">
             <div className="eyebrow">Two steps</div>
-            <h2>Find gaps. Check what works.</h2>
+            <h2>Find gaps. <em className="serif">Check what works.</em></h2>
             <p>We do not claim a spec is correct. We show what is missing, then test setups against a model you approve.</p>
           </div>
           <article className="step reveal">
@@ -129,14 +129,30 @@ export function HomePage() {
         <div className="wrap">
           <div className="sec-head reveal">
             <div className="eyebrow">Clear roles</div>
-            <h2>AI drafts. You decide. Solver checks.</h2>
+            <h2>AI drafts. <em className="serif">You decide.</em></h2>
             <p>Every result is labelled. Guesses are never shown as facts.</p>
           </div>
-          <div className="grid4">
-            <article className="role reveal"><div className="tag" style={{ color: 'var(--violet)' }}>AI</div><h3>Extraction</h3><p>Drafts parts, values and rules from the doc.</p></article>
-            <article className="role reveal d1"><div className="tag" style={{ color: 'var(--ink2)' }}>Audit</div><h3>Source check</h3><p>Compares the draft to the original text.</p></article>
-            <article className="role reveal d2"><div className="tag" style={{ color: 'var(--forest)' }}>Engineer</div><h3>Your review</h3><p>Accept, edit or reject. Then rerun.</p></article>
-            <article className="role reveal d3"><div className="tag" style={{ color: 'var(--green)' }}>Solver</div><h3>Possibilities</h3><p>Tests setups against the model you approved.</p></article>
+          <div className="feature-list">
+            <article className="feature-row reveal">
+              <span className="feature-num">01</span>
+              <div><h3>Extraction</h3><p>Drafts parts, values and rules from the document.</p></div>
+              <span className="feature-tag violet">AI</span>
+            </article>
+            <article className="feature-row reveal d1">
+              <span className="feature-num">02</span>
+              <div><h3>Source check</h3><p>Compares the draft back to the original text.</p></div>
+              <span className="feature-tag">Audit</span>
+            </article>
+            <article className="feature-row reveal d2">
+              <span className="feature-num">03</span>
+              <div><h3>Your review</h3><p>Accept, edit or reject, then rerun without re-reading.</p></div>
+              <span className="feature-tag forest">Engineer</span>
+            </article>
+            <article className="feature-row reveal d3">
+              <span className="feature-num">04</span>
+              <div><h3>Possibilities</h3><p>Tests setups against the model you approved.</p></div>
+              <span className="feature-tag green">Solver</span>
+            </article>
           </div>
         </div>
       </section>
@@ -145,7 +161,7 @@ export function HomePage() {
         <div className="wrap">
           <div className="sec-head reveal">
             <div className="eyebrow">Real examples</div>
-            <h2>Start with a real specification.</h2>
+            <h2>Start with a <em className="serif">real specification.</em></h2>
             <p>These files come from the backend. Pick one and it opens in the live workspace.</p>
           </div>
           <LiveExampleStrip />
@@ -153,25 +169,66 @@ export function HomePage() {
       </section>
 
       <section className="block alt">
-        <div className="wrap sec-grid">
+        <div className="wrap privacy-grid">
           <div className="reveal">
-            <div className="eyebrow">Handling</div>
-            <h2 style={{ fontSize: 'clamp(1.65rem,3vw,2.1rem)' }}>The text goes to the backend, not the browser.</h2>
-            <p style={{ color: 'var(--ink2)', marginTop: 10 }}>No account is needed for this workspace. Jobs live in server memory and are written to disk only when you choose to save a report.</p>
-            <p style={{ marginTop: 14 }}><NavLink to="security">How documents are handled →</NavLink></p>
+            <div className="eyebrow">Private by design</div>
+            <h2>Your spec stays <em className="serif">with the job.</em></h2>
+            <p>No account is needed for this workspace. Jobs live in server memory and are written to disk only when you choose to save a report.</p>
+            <p style={{ marginTop: 14 }}><NavLink to="security">Read the handling notes →</NavLink></p>
           </div>
-          <ul className="seclist reveal d1">
-            <li><span className="tick">✓</span>PDFs and text are read by the local backend.</li>
-            <li><span className="tick">✓</span>Extraction credentials stay off the browser.</li>
-            <li><span className="tick">✓</span>Job state is in memory until you save a report.</li>
-            <li><span className="tick">✓</span>No certification claims we cannot back up.</li>
-          </ul>
+          <div className="privacy-table reveal d1">
+            <div><span>Your document</span><b>Read by your local backend</b></div>
+            <div><span>AI credentials</span><b>Never sent to the browser</b></div>
+            <div><span>Job results</span><b>Held in server memory</b></div>
+            <div><span>Saved reports</span><b>Only when you press save</b></div>
+            <div><span>Accounts</span><b>None needed</b></div>
+          </div>
+        </div>
+      </section>
+
+      <section className="block">
+        <div className="wrap">
+          <div className="works-strip reveal">
+            <span>PDF specifications</span>
+            <span>Pasted requirements</span>
+            <span>GoalShift SAT</span>
+            <span>z3 SMT</span>
+            <span>Local Python backend</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="block alt">
+        <div className="wrap faq-grid">
+          <div className="reveal">
+            <div className="eyebrow">Questions, answered.</div>
+            <h2>The short <em className="serif">answers.</em></h2>
+            <p>Plain answers about what this runs, what it saves, and what it can prove.</p>
+          </div>
+          <div className="faq-list reveal d1">
+            <details>
+              <summary>What is ReqShift?</summary>
+              <p>A tool that reads requirements, drafts a model, and reports what the document never states.</p>
+            </details>
+            <details>
+              <summary>Do I need an account?</summary>
+              <p>No. The live workspace runs on the local backend without sign-in.</p>
+            </details>
+            <details>
+              <summary>Does it prove my spec is safe?</summary>
+              <p>No. It checks the model you approve. Engineers still make the final calls.</p>
+            </details>
+            <details>
+              <summary>What gets saved?</summary>
+              <p>Only what you explicitly save. Job results otherwise stay in server memory.</p>
+            </details>
+          </div>
         </div>
       </section>
 
       <section className="cta">
         <div className="wrap reveal">
-          <h2>Find the gaps before you build.</h2>
+          <h2>Your next spec, <em className="serif">already checked.</em></h2>
           <p>Upload. Review the evidence. Fix the model. Run the checks.</p>
           <div className="actions">
             <NavLink to="analyze" className="btn btn-white btn-lg">Run a gap report</NavLink>
@@ -194,7 +251,7 @@ export function HowPage() {
       <div className="page-hero">
         <div className="wrap">
           <div className="eyebrow">How it works</div>
-          <h1>From document to decisions.</h1>
+          <h1>From document to <em className="serif">decisions.</em></h1>
           <p>Four stages. Each one is labelled. If we cannot check something, we say so. The clips below loop like GIFs. Pause or replay any of them.</p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 18 }}>
             <button className="btn btn-secondary btn-sm" type="button" onClick={() => setPaused([true, true, true, true])}>

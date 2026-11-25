@@ -251,7 +251,7 @@ export default function AnalyzePage({ section }) {
 
   return (
     <>
-      <PageHero eyebrow="Live workspace" title="Run a real gap analysis.">
+      <PageHero eyebrow="Live workspace" title={<>Run a <em className="serif">real</em> gap analysis.</>}>
         <p>No account, no demo data in this flow. It calls the ReqShift backend, polls the real job, and shows what the server returns.</p>
         <div className="workspace-status">
           <span className={`pill ${backendName ? 'pill-ok' : 'pill-synth'}`}>
