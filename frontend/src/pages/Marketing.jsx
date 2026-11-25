@@ -6,7 +6,7 @@ export function HomePage() {
   return (
     <>
       <section className="hero">
-        <div className="wrap-wide hero-grid">
+        <div className="wrap hero-center">
           <div className="reveal in">
             <div className="eyebrow">A little clarity for messy specs</div>
             <h1>Find what the spec <em className="serif">never says.</em></h1>
@@ -23,39 +23,6 @@ export function HomePage() {
               <span className="point"><i aria-hidden="true" /> You approve the model</span>
             </div>
           </div>
-          <aside className="hero-evidence reveal in d1" aria-label="Synthetic gap report preview">
-            <div className="evidence-top">
-              <span className="evidence-dots" aria-hidden="true"><i /><i /><i /></span>
-              <span className="evidence-file">batch mixer spec.pdf</span>
-              <span className="pill pill-synth">Synthetic</span>
-            </div>
-            <div className="evidence-body">
-              <div className="evidence-kicker">Gap report</div>
-              <h2>What the document <em className="serif">never says.</em></h2>
-              <div className="evidence-count">
-                <strong>7</strong>
-                <span>gaps found with<br />source quotes</span>
-              </div>
-              <div className="evidence-list">
-                <div className="evidence-row">
-                  <span className="evidence-index">01</span>
-                  <span className="evidence-copy"><b>Max pressure missing</b><small>p. 2 · no value or unit</small></span>
-                  <em>High</em>
-                </div>
-                <div className="evidence-row med">
-                  <span className="evidence-index">02</span>
-                  <span className="evidence-copy"><b>Heater rule unclear</b><small>p. 6 · level limit not stated</small></span>
-                  <em>Medium</em>
-                </div>
-                <div className="evidence-row ai">
-                  <span className="evidence-index">03</span>
-                  <span className="evidence-copy"><b>Ambient range proposed</b><small>AI idea · not in source</small></span>
-                  <em>Review</em>
-                </div>
-              </div>
-            </div>
-            <div className="evidence-foot"><span>AI drafts</span><span>Audit checks</span><span>Solver proves</span></div>
-          </aside>
         </div>
       </section>
 
