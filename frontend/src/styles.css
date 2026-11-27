@@ -586,3 +586,26 @@ footer{background:linear-gradient(180deg,#F3F0EA,#EEEAE1)}
 .faq-list p{margin-top:10px;color:var(--ink2);font-size:13.5px;max-width:62ch}
 @media(max-width:900px){.privacy-grid,.faq-grid{grid-template-columns:1fr;gap:28px}}
 @media(max-width:640px){.feature-row{grid-template-columns:34px 1fr;gap:12px;padding:15px}.feature-tag{grid-column:2;justify-self:start}.privacy-table div{grid-template-columns:1fr;gap:4px}.works-strip{justify-content:flex-start}}
+
+/* Step 2: the reader supplies the numbers the document leaves out */
+.step2{border-top:1px solid var(--line);padding-top:18px}
+.step2-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.step2-head h2{margin:0}
+.step2-list{list-style:none;margin:14px 0;padding:0;display:grid;gap:8px;max-height:520px;overflow-y:auto}
+.step2-row{display:grid;grid-template-columns:1fr 112px 112px;gap:10px;align-items:end;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.step2-row.bad{border-color:var(--red);background:var(--red-soft)}
+.step2-text{display:flex;flex-direction:column;gap:4px;min-width:0}
+.step2-text .pill{align-self:flex-start;text-transform:capitalize}
+.step2-text small{color:var(--ink3);font-size:12px;line-height:1.45}
+.step2-num{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--ink3)}
+.step2-num .input{min-height:38px;padding:0 9px}
+.step2-other{margin:10px 0;font-size:13px}
+.step2-other summary{cursor:pointer;color:var(--ink2)}
+.step2-other li{margin:6px 0;color:var(--ink2);line-height:1.45}
+.step2 .workspace-actions{align-items:center}
+.step2 .workspace-actions .hint{margin-top:0}
+.linkish{background:none;border:0;padding:0;color:inherit;font:inherit;text-decoration:underline;cursor:pointer}
+@media (max-width:640px){
+  .step2-row{grid-template-columns:1fr 1fr}
+  .step2-text{grid-column:1/-1}
+}

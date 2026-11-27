@@ -10,6 +10,7 @@ import {
   saveReport,
   startAnalysis,
 } from '../api.js'
+import Step2 from './Step2.jsx'
 
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -76,6 +77,7 @@ export default function AnalyzePage({ section }) {
   const [verify, setVerify] = useState(true)
   const [explain, setExplain] = useState(false)
   const [job, setJob] = useState(null)
+  const [proof, setProof] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -203,6 +205,7 @@ export default function AnalyzePage({ section }) {
     setNotice('')
     setSaved('')
     setJob(null)
+    setProof(null)
     setBusy(true)
     setStartedAt(Date.now())
     setSeconds(0)
@@ -233,9 +236,9 @@ export default function AnalyzePage({ section }) {
     setError('')
     try {
       const result = await saveReport({
-        spec: job.spec,
+        spec: proof?.spec || job.spec,
         trace: job.trace,
-        markdown: job.markdown || job.gaps_markdown || '',
+        markdown: proof?.markdown || job.markdown || job.gaps_markdown || '',
       })
       setSaved(result.saved)
     } catch (err) {
@@ -251,8 +254,9 @@ export default function AnalyzePage({ section }) {
     ? stages.length
     : stages.findIndex((item) => item.id === job?.stage)
   const backendName = backends?.backends?.[0] || ''
-  const markdown = job?.markdown || job?.gaps_markdown || ''
-  const summary = Object.entries(job?.summary || {}).slice(0, 8)
+  const markdown = proof?.markdown || job?.markdown || job?.gaps_markdown || ''
+  const summary = Object.entries(proof?.summary || job?.summary || {}).slice(0, 8)
+  const findings = proof?.findings || job?.findings || []
 
   return (
     <>
@@ -444,10 +448,10 @@ export default function AnalyzePage({ section }) {
 
                 {(job.state === 'done' || job.state === 'gaps_only') && (
                   <div className="result-block">
-                    <h2>{job.state === 'gaps_only' ? 'Gap report' : 'Analysis report'}</h2>
+                    <h2>{proof ? 'Analysis with your numbers' : job.state === 'gaps_only' ? 'Gap report' : 'Analysis report'}</h2>
                     <div className="workspace-stats">
                       <div className="stat"><b>{(job.gaps || []).length}</b><span>Gaps</span></div>
-                      {job.state === 'done' && <div className="stat"><b>{(job.findings || []).length}</b><span>Findings</span></div>}
+                      {(job.state === 'done' || proof) && <div className="stat"><b>{findings.length}</b><span>Findings</span></div>}
                       {job.engine && <div className="stat"><b>{job.engine === 'smt' ? 'z3' : 'SAT'}</b><span>Engine</span></div>}
                     </div>
                     {summary.length > 0 && (
@@ -463,6 +467,16 @@ export default function AnalyzePage({ section }) {
                       {saved && <span className="saved mono">{saved}</span>}
                     </div>
                   </div>
+                )}
+
+                {(job.state === 'done' || job.state === 'gaps_only') && job.spec && (
+                  <Step2
+                    key={job.id}
+                    job={job}
+                    proof={proof}
+                    onProved={(r) => { setProof(r); setSaved('') }}
+                    onReset={() => { setProof(null); setSaved('') }}
+                  />
                 )}
               </>
             )}

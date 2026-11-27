@@ -38,8 +38,18 @@ That is the whole design. It is why a finding here cannot be hallucinated.
 ## The web UI
 
 ```
-py -3 app.py                 then open http://localhost:8020
+cd frontend && npm ci && npm run build     once, and after every frontend change
+cd .. && py -3 app.py                      then open http://localhost:8020
 ```
+
+With a build in `frontend/dist`, `/` serves the React site and its Live analysis page
+(`#analyze`), including step 2. Without a build `/` falls back to the static landing page.
+The original single-file UI described below stays at `/app`. For frontend work,
+`npm run dev` in `frontend/` serves on :5173 and proxies `/api` to a running `app.py`.
+
+Run `app.py` with a Python that has `python-sat` installed, or every solve, including
+step 2, fails with `No module named 'pysat'`. A gap-report-only run does not solve and
+works either way.
 
 Paste requirements, pick an engine, press Analyze, watch the stages, read the result.
 The engine dropdown offers **GoalShift (SAT)**, the default, and **z3 (SMT)** when z3 is

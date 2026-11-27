@@ -39,3 +39,9 @@ export const saveReport = (payload) => apiFetch('/api/save', {
   method: 'POST',
   body: JSON.stringify(payload),
 })
+
+// Step 2. Re-proves an existing model with numbers the reader supplied. No AI call.
+export const reanalyze = (body) => apiFetch('/api/reanalyze', {
+  method: 'POST',
+  body: JSON.stringify(body),
+})
