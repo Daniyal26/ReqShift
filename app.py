@@ -22,6 +22,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIST = os.path.join(HERE, "frontend", "dist")
 sys.path.insert(0, HERE)
 
 import analyze
@@ -431,8 +432,23 @@ class Handler(BaseHTTPRequestHandler):
         u = urlparse(self.path)
         q = parse_qs(u.query)
         if u.path in ("/", "/index.html"):
+            # The React front end, once built with `npm run build` in frontend/.
+            # Without a build the old static landing page still answers, so a fresh
+            # clone works before anyone has installed Node.
+            built = os.path.join(FRONTEND_DIST, "index.html")
+            if os.path.exists(built):
+                return self._file(built, "text/html; charset=utf-8")
             return self._file(os.path.join(HERE, "ui", "landing.html"),
                               "text/html; charset=utf-8")
+        if u.path.startswith("/assets/"):
+            # Vite's hashed bundles. basename() keeps the request inside dist/assets.
+            name = os.path.basename(u.path)
+            path = os.path.join(FRONTEND_DIST, "assets", name)
+            kind = {"js": "application/javascript", "css": "text/css"}.get(
+                name.rsplit(".", 1)[-1])
+            if not kind or not os.path.exists(path):
+                return self._json({"error": "not found"}, 404)
+            return self._file(path, kind + "; charset=utf-8")
         if u.path in ("/app", "/app/", "/app/index.html"):
             return self._file(os.path.join(HERE, "ui", "index.html"),
                               "text/html; charset=utf-8")

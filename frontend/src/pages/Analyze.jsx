@@ -244,7 +244,12 @@ export default function AnalyzePage({ section }) {
   }
 
   const stages = job?.stages || []
-  const currentStage = stages.findIndex((item) => item.id === job?.stage)
+  // A finished job reports stage "done", which is not in the list, so without this
+  // every step loses its tick the moment the run succeeds.
+  const finished = job?.state === 'done' || job?.state === 'gaps_only'
+  const currentStage = finished
+    ? stages.length
+    : stages.findIndex((item) => item.id === job?.stage)
   const backendName = backends?.backends?.[0] || ''
   const markdown = job?.markdown || job?.gaps_markdown || ''
   const summary = Object.entries(job?.summary || {}).slice(0, 8)
